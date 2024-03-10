@@ -9,9 +9,14 @@ def main():
     pong = b"+PONG\r\n"
 
     server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
-    connection, address = server_socket.accept() # wait for client
 
-    connection.sendall(pong)
+    connection, address = server_socket.accept() # wait for client
+    with connection:
+        while True:
+            data = connection.recv(1024).decode("utf-8")
+            if not data:  # Handles multiple PINGS from the same connection
+                break
+            connection.sendall(pong)
 
 
 if __name__ == "__main__":
