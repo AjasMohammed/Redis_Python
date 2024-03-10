@@ -1,23 +1,32 @@
-# Uncomment this to pass the first stage
-import socket
+import asyncio
 
 
-def main():
+# Define coroutine to handle client connections
+async def handle_client(reader, writer):
+    pong = b"+PONG\r\n"
+    while True:
+        # Read data from the client
+        data = await reader.read(1024)
+        if not data:
+            break
+        # Send PONG response back to the client
+        writer.write(pong)
+        await writer.drain()
+    # Close the connection
+    writer.close()
+
+
+async def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
 
-    pong = b"+PONG\r\n"
+    # Start the server
+    server = await asyncio.start_server(handle_client, "localhost", 6379, reuse_port=True)
 
-    server_socket = socket.create_server(("localhost", 6379), reuse_port=True)
-
-    connection, address = server_socket.accept() # wait for client
-    with connection:
-        while True:
-            data = connection.recv(1024).decode("utf-8")
-            if not data:  # Handles multiple PINGS from the same connection
-                break
-            connection.sendall(pong)
+    # Serve clients indefinitely
+    async with server:
+        await server.serve_forever()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
