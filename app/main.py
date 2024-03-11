@@ -21,7 +21,7 @@ async def handle_client(reader, writer):
         result = await handle_command(byte_data)
         encoded = resp.encoder(result)
         if result:
-            writer.write(bytes(encoded, "utf-8"))
+            writer.write(encoded)
         else:
             # Send PONG response back to the client
             writer.write(pong)
