@@ -35,7 +35,7 @@ async def handle_command(data):
     keyword, *args = data
     keyword = keyword.upper()
     if keyword == "PING":
-        return b"+PONG\r\n"
+        return "PONG"
     elif keyword == "ECHO":
         return " ".join(args)
     else:

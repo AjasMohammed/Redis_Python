@@ -43,7 +43,7 @@ class RedisProtocolParser:
                 data = data[index + 2 :]
                 self.join_data(num)
 
-        return bytes(self.decoded, "utf-8")
+        return self.decoded
 
     def join_data(self, data):
         if self.decoded == None:
