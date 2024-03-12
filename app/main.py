@@ -3,7 +3,7 @@ import logging
 from .utilities import RedisProtocolParser, Store
 
 
-logging.basicConfig(
+logging.basicConfig(filename='main.log',
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
@@ -23,7 +23,6 @@ async def handle_client(reader, writer, store):
         logging.debug(f"bytes data is {byte_data}")
 
         result = await handle_command(byte_data, store)
-
         encoded = resp.encoder(result)
         if encoded:
             writer.write(encoded)
@@ -44,7 +43,7 @@ async def handle_command(data, store):
     elif keyword == "ECHO":
         return " ".join(args)
     elif keyword == "SET":
-        store.set(args[0], args[1])
+        store.set(args[0], args[1], args[2:])
         return "OK"
     elif keyword == "GET":
         data = store.get(args[0])

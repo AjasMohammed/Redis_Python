@@ -12,7 +12,7 @@ class RedisProtocolParser:
             if data.isdigit():
                 self.encoded = self.integer(data, True)
             else:
-                if len(data.split(" ")) == 1:
+                if data.lower() in ["pong", "ok"]:
                     self.encoded = self.simple_string(data, True)
                 else:
                     self.encoded = self.bulk_string(data, encode=True)
@@ -35,7 +35,7 @@ class RedisProtocolParser:
                 self.join_data(keyword)
 
             elif data.startswith("-"):
-                return self.simple_string(data)
+                return self.simple_error(data)
 
             index = data.find(DELIMETER)
 
@@ -49,7 +49,7 @@ class RedisProtocolParser:
                 num = int(data[1 : index + 2].rstrip(DELIMETER))
                 data = data[index + 2 :]
                 self.join_data(num)
-
+        print(self.decoded)
         return self.decoded
 
     def join_data(self, data):
@@ -72,7 +72,10 @@ class RedisProtocolParser:
 
     @staticmethod
     def simple_error(data, encode=False):
-        return data[1:].rstrip(DELIMETER)
+        if encode:
+            return "-" + data[1:].rstrip(DELIMETER) + DELIMETER
+        else:
+            return data[1:].rstrip(DELIMETER)
 
     @staticmethod
     def bulk_string(data, index=0, encode=False):
@@ -103,3 +106,13 @@ class RedisProtocolParser:
             resp = RedisProtocolParser()
             mapped_data = map(lambda keyword: resp.encoder(keyword), data)
             return prefix + "".join(mapped_data)
+
+
+# Usage example
+if __name__ == "__main__":
+    parser = RedisProtocolParser()
+    decoded_data = parser.decoder(
+        b"*6\r\n$3\r\nSET\r\n$4\r\nname\r\n$9\r\nSpongeBob\r\n$2\r\nPX\r\n$2\r\n10\r\n"
+    )
+    # encoded_data = parser.encoder("SET key1 value1")
+    # logging.error(f"Error occurred: {decoded_data}")
