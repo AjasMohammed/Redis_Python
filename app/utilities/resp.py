@@ -22,7 +22,6 @@ class RedisProtocolParser:
 
         else:
             self.encoded = "$-1\r\n"  # Null Bulk String
-
         return bytes(self.encoded, "utf-8")
 
     def decoder(self, data: bytes):
@@ -49,7 +48,6 @@ class RedisProtocolParser:
                 num = int(data[1 : index + 2].rstrip(DELIMETER))
                 data = data[index + 2 :]
                 self.join_data(num)
-        print(self.decoded)
         return self.decoded
 
     def join_data(self, data):
@@ -85,7 +83,8 @@ class RedisProtocolParser:
                 f"${len(keyword)}{DELIMETER}{keyword}{DELIMETER}"
                 for keyword in keywords
             )
-            return convert_data(raw_data)
+            new_data = convert_data(raw_data)
+            return new_data
         else:
             start_index = index + 2
             string_length = int(data[1:start_index])
@@ -104,7 +103,10 @@ class RedisProtocolParser:
         if encode:
             prefix = "*" + str(len(data)) + DELIMETER
             resp = RedisProtocolParser()
-            mapped_data = map(lambda keyword: resp.encoder(keyword), data)
+            mapped_data = map(
+                lambda keyword: resp.encoder(keyword).decode("utf-8"), data
+            )
+
             return prefix + "".join(mapped_data)
 
 

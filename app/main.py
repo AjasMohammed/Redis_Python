@@ -1,70 +1,31 @@
 import asyncio
-import logging
-from .utilities import RedisProtocolParser, Store
+from .utilities import ServerConfiguration
+import argparse
+from .server import Server
 
 
-logging.basicConfig(filename='main.log',
-    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
-
-# Define coroutine to handle client connections
-async def handle_client(reader, writer, store):
-    pong = b"+PONG\r\n"
-    while True:
-        # Read data from the client
-        data = await reader.read(1024)
-        logging.debug(f"Recived data: {data}")
-        if not data:
-            break
-        resp = RedisProtocolParser()
-
-        byte_data = resp.decoder(data)
-        logging.debug(f"bytes data is {byte_data}")
-
-        result = await handle_command(byte_data, store)
-        encoded = resp.encoder(result)
-        if encoded:
-            writer.write(encoded)
-        else:
-            # Send PONG response back to the client
-            writer.write(pong)
-        await writer.drain()
-    # Close the connection
-    writer.close()
-
-
-async def handle_command(data, store):
-    logging.debug(f"data is {data}")
-    keyword, *args = data
-    keyword = keyword.upper()
-    if keyword == "PING":
-        return "PONG"
-    elif keyword == "ECHO":
-        return " ".join(args)
-    elif keyword == "SET":
-        store.set(args[0], args[1], args[2:])
-        return "OK"
-    elif keyword == "GET":
-        data = store.get(args[0])
-        return data
-    else:
-        return None
 
 
 async def main():
+    parser = argparse.ArgumentParser(description="Redis server")
+    parser.add_argument(
+        "--dir",
+        help="Directory to store data",
+    )
+    parser.add_argument(
+        "--dbfilename",
+        help="Filename to store data",
+    )
+    args = parser.parse_args()  # parse commandline arguments
+
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
 
-    store = Store()
-    # Start the server
-    server = await asyncio.start_server(
-        lambda r, w: handle_client(r, w, store), "localhost", 6379, reuse_port=True
-    )
+    config = ServerConfiguration(dir=args.dir, dbfilename=args.dbfilename)
 
-    # Serve clients indefinitely
-    async with server:
-        await server.serve_forever()
+    # Start the server
+    server = Server(config)
+    await server.start_server()
 
 
 if __name__ == "__main__":
