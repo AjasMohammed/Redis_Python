@@ -1,5 +1,6 @@
 DELIMETER = "\r\n"
 
+
 class RedisProtocolParser:
     def __init__(self):
         self.decoded = None
@@ -11,10 +12,16 @@ class RedisProtocolParser:
             if data.isdigit():
                 self.encoded = self.integer(data, True)
             else:
-                self.encoded = self.bulk_string(data, encode=True)
+                if len(data.split(" ")) == 1:
+                    self.encoded = self.simple_string(data, True)
+                else:
+                    self.encoded = self.bulk_string(data, encode=True)
 
         elif isinstance(data, list):
             self.encoded = self.array(data, True)
+
+        else:
+            self.encoded = "$-1\r\n"  # Null Bulk String
 
         return bytes(self.encoded, "utf-8")
 

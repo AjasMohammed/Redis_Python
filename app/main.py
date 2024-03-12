@@ -1,12 +1,15 @@
 import asyncio
 import logging
-from .redis_parser.resp import RedisProtocolParser
+from .utilities import RedisProtocolParser, Store
 
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 # Define coroutine to handle client connections
-async def handle_client(reader, writer):
+async def handle_client(reader, writer, store):
     pong = b"+PONG\r\n"
     while True:
         # Read data from the client
@@ -15,12 +18,14 @@ async def handle_client(reader, writer):
         if not data:
             break
         resp = RedisProtocolParser()
-        byte_data = resp.decoder(data)
-        logging.debug(f'bytes data is {byte_data}')
 
-        result = await handle_command(byte_data)
+        byte_data = resp.decoder(data)
+        logging.debug(f"bytes data is {byte_data}")
+
+        result = await handle_command(byte_data, store)
+
         encoded = resp.encoder(result)
-        if result:
+        if encoded:
             writer.write(encoded)
         else:
             # Send PONG response back to the client
@@ -30,14 +35,20 @@ async def handle_client(reader, writer):
     writer.close()
 
 
-async def handle_command(data):
-    logging.debug(f'data is {data}')
+async def handle_command(data, store):
+    logging.debug(f"data is {data}")
     keyword, *args = data
     keyword = keyword.upper()
     if keyword == "PING":
         return "PONG"
     elif keyword == "ECHO":
         return " ".join(args)
+    elif keyword == "SET":
+        store.set(args[0], args[1])
+        return "OK"
+    elif keyword == "GET":
+        data = store.get(args[0])
+        return data
     else:
         return None
 
@@ -46,9 +57,10 @@ async def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
 
+    store = Store()
     # Start the server
     server = await asyncio.start_server(
-        handle_client, "localhost", 6379, reuse_port=True
+        lambda r, w: handle_client(r, w, store), "localhost", 6379, reuse_port=True
     )
 
     # Serve clients indefinitely
