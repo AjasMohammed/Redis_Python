@@ -12,7 +12,6 @@ class Store:
         }
 
     def set(self, key: str, value: any, args: list):
-        print(key, value, args)
         """
         Set a key-value pair in the store with optional arguments for expiration time.
 
@@ -92,7 +91,7 @@ class Store:
         current_time = time.time() * 1000
         expiration_time = (
             current_time + expire_time
-        ) // 1000  # converts milliseconds to seconds
+        ) / 1000  # converts milliseconds to seconds
         return expiration_time
 
     @staticmethod
