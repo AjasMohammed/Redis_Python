@@ -73,7 +73,10 @@ class Server:
         elif keyword == "CONFIG":
             return self.config.handle_config(args)
         elif keyword == "KEYS":
-            key_value_pair = self.db.database_parser(self.config.db_path)
+            if args[0] == "*":
+                key_value_pair = self.db.key_value_pair
+            else:
+                key_value_pair = self.db.database_parser(self.config.db_path)
             if key_value_pair:
                 return list(key_value_pair.keys())
             else:
