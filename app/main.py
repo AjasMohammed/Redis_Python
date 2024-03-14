@@ -4,16 +4,16 @@ import argparse
 from .server import Server
 
 
-
-
 async def main():
     parser = argparse.ArgumentParser(description="Redis server")
     parser.add_argument(
         "--dir",
+        default="/tmp/redis-files",
         help="Directory to store data",
     )
     parser.add_argument(
         "--dbfilename",
+        default="dump.rdb",
         help="Filename to store data",
     )
     args = parser.parse_args()  # parse commandline arguments

@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from .utilities import RedisProtocolParser, Store
+import os
+from .utilities import RedisProtocolParser, Store, DatabaseParser
 
 
 logging.basicConfig(
@@ -14,6 +15,7 @@ class Server:
     def __init__(self, config):
         self.config = config
         self.store = Store()
+        self.db = DatabaseParser()
 
     async def start_server(self):
         server = await asyncio.start_server(
@@ -36,7 +38,6 @@ class Server:
 
             byte_data = resp.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
-
             result = await self.handle_command(byte_data)
             encoded = resp.encoder(result)
             if encoded:
@@ -64,6 +65,9 @@ class Server:
             return data
         elif keyword == "CONFIG":
             return self.config.handle_config(args)
+        elif keyword == "KEYS":
+            path = os.path.join(self.config.dir, self.config.dbfilename)
+            keys = self.db.database_parser(path)
+            return keys
         else:
-
             return None
