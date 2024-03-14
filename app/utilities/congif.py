@@ -7,6 +7,7 @@ class ServerConfiguration:
     port: int = 6379
     dir: str
     dbfilename: str
+    db_path: str = None
 
     def handle_config(self, new_conf: list):
         keyword = new_conf.pop(0)

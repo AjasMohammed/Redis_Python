@@ -1,6 +1,9 @@
+from .store import Store
+
+
 class DatabaseParser:
     def __init__(self) -> None:
-        self.keys = []
+        self.key_value_pair : dict = {}
         
     def parse_lenght(self, data: bytes, current_index: int):
 
@@ -84,18 +87,12 @@ class DatabaseParser:
             elif op_code == 0x00:
                 key, current_index = self.parse_rdb_string(data, current_index)
                 value, current_index = self.parse_rdb_string(data, current_index)
-                self.keys.append(key.decode('utf-8'))
+                self.key_value_pair[key.decode('utf-8')] = value.decode('utf-8')
             else:
                 continue
 
-        return self.keys
+        return self.key_value_pair
+    
 
-
-if __name__ == "__main__":
-
-    # with open("dump.rdb", "rb") as f:
-    #     data = f.read()
-
-    # print(data)
-    # parser = rdb_parser(data)
-    pass
+    def update_store(self, store: Store):
+        store.store.update(self.key_value_pair)
