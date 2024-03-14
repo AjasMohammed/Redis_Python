@@ -87,12 +87,13 @@ class DatabaseParser:
             elif op_code == 0x00:
                 key, current_index = self.parse_rdb_string(data, current_index)
                 value, current_index = self.parse_rdb_string(data, current_index)
-                self.key_value_pair[key.decode('utf-8')] = value.decode('utf-8')
+                self.key_value_pair[key.decode('utf-8')] = (value.decode('utf-8'), None)
             else:
                 continue
 
         return self.key_value_pair
     
 
-    def update_store(self, store: Store):
+    def update_store(self, store: Store, path: str):
+        self.database_parser(path)
         store.store.update(self.key_value_pair)

@@ -1,5 +1,12 @@
-DELIMETER = "\r\n"
+import logging
 
+
+logging.basicConfig(
+    filename="resp.log",
+    level=logging.DEBUG,
+)
+
+DELIMETER = "\r\n"
 
 class RedisProtocolParser:
     def __init__(self):

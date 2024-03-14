@@ -21,12 +21,12 @@ class Server:
         server = await asyncio.start_server(
             self.handle_client, "localhost", self.config.port, reuse_port=True
         )
-        
+
         # set path to the .rdb file in the config
         path = os.path.join(self.config.dir, self.config.dbfilename)
         self.config.db_path = path
-        
-        self.db.update_store(self.store)
+
+        self.db.update_store(self.store, path)
 
         # Serve clients indefinitely
         async with server:
@@ -74,6 +74,9 @@ class Server:
             return self.config.handle_config(args)
         elif keyword == "KEYS":
             key_value_pair = self.db.database_parser(self.config.db_path)
-            return list(key_value_pair.keys())
+            if key_value_pair:
+                return list(key_value_pair.keys())
+            else:
+                return None
         else:
             return None
