@@ -27,6 +27,7 @@ class Server:
         self.config.db_path = path
 
         self.db.update_store(self.store, path)
+        print(path)
 
         # Serve clients indefinitely
         async with server:

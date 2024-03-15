@@ -1,5 +1,8 @@
 import time
 from .store import Store
+import logging
+
+logging.basicConfig(filename="parser.log", level=logging.DEBUG)
 
 
 class DatabaseParser:
@@ -50,7 +53,9 @@ class DatabaseParser:
         try:
             with open(path, "rb") as file:
                 data = file.read()
-        except:
+                # print(f"DATA: {data}")
+        except Exception as e:
+            print("ERROR Occured while reading file: ", e)
             return None
 
         magic, data = data[:5], data[5:]
@@ -93,8 +98,11 @@ class DatabaseParser:
                 key, current_index = self.parse_rdb_string(data, current_index)
                 value, current_index = self.parse_rdb_string(data, current_index)
 
-                if expire_time and expire_time > time.time():
+                if expire_time and expire_time < time.time():
+                    pass
+                else:
 
+                    print("Done")
                     self.key_value_pair[key.decode("utf-8")] = (
                         value.decode("utf-8"),
                         expire_time,

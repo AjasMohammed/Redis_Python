@@ -8,7 +8,7 @@ async def main():
     parser = argparse.ArgumentParser(description="Redis server")
     parser.add_argument(
         "--dir",
-        default="/tmp/redis-files",
+        default="./",
         help="Directory to store data",
     )
     parser.add_argument(
