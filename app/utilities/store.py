@@ -130,6 +130,14 @@ class Store:
     def ex(expire_time: int):  # Expire time in seconds
         current_time = time.time()
         return current_time + expire_time
+    
+    @staticmethod
+    def generate_sq(ms, sq, lms, lsq):
+        if ms == lms:
+            sq = int(lsq) + 1
+        else:
+            sq = 0
+        return sq
 
     @staticmethod
     def validate_stream_id(id, last_id):
@@ -137,7 +145,7 @@ class Store:
         ms, sq = id.split("-")
         lms, lsq = last_id.split("-")
         if sq == "*":
-            sq = int(lsq) + 1
+            sq = Store.generate_sq(ms, sq, lms, lsq)
             return f"{ms}-{sq}"
         if id == "0-0":
             message["error"] = "The ID specified in XADD must be greater than 0-0"
