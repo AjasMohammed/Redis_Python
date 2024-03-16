@@ -2,8 +2,6 @@ import time
 from .store import Store
 import logging
 
-logging.basicConfig(filename="parser.log", level=logging.DEBUG)
-
 
 class DatabaseParser:
     def __init__(self) -> None:

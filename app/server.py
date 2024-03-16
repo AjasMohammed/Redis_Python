@@ -34,6 +34,7 @@ class Server:
 
     # Define coroutine to handle client connections
     async def handle_client(self, reader, writer):
+        logging.info(f"CLIENT CONNECTED :- {writer.get_extra_info('peername')}")
         pong = b"+PONG\r\n"
         while True:
             # Read data from the client
@@ -87,7 +88,7 @@ class Server:
         elif keyword == "XADD":
             key = args.pop(0)
             id = args.pop(0)
-            self.store.xadd(key, id, args)
-            return id
+            response = self.store.xadd(key, id, args)
+            return response
         else:
             return None

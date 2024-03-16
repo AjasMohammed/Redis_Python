@@ -1,11 +1,3 @@
-import logging
-
-
-logging.basicConfig(
-    filename="resp.log",
-    level=logging.DEBUG,
-)
-
 DELIMETER = "\r\n"
 
 class RedisProtocolParser:
@@ -17,15 +9,18 @@ class RedisProtocolParser:
         self.encoded = None
         if isinstance(data, str):
             if data.isdigit():
-                self.encoded = self.integer(data, True)
+                self.encoded = self.integer(data, encode=True)
             else:
                 if data.lower() in ["pong", "ok", 'string', 'integer', 'list', 'hash', 'stream', 'none']:
-                    self.encoded = self.simple_string(data, True)
+                    self.encoded = self.simple_string(data, encode=True)
                 else:
                     self.encoded = self.bulk_string(data, encode=True)
 
         elif isinstance(data, list):
-            self.encoded = self.array(data, True)
+            self.encoded = self.array(data, encode=True)
+        
+        elif isinstance(data, dict):
+            self.encoded = self.simple_error(data['error'], encode=True)
 
         else:
             self.encoded = "$-1\r\n"  # Null Bulk String
@@ -78,7 +73,7 @@ class RedisProtocolParser:
     @staticmethod
     def simple_error(data, encode=False):
         if encode:
-            return "-" + data[1:].rstrip(DELIMETER) + DELIMETER
+            return "-ERR " + data.rstrip(DELIMETER) + DELIMETER
         else:
             return data[1:].rstrip(DELIMETER)
 
