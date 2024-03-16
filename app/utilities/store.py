@@ -68,9 +68,13 @@ class Store:
             self.last_stream = id
             return id
         else:
-            message = {
-                "error": "The ID specified in XADD is equal or smaller than the target stream top item"
-            }
+            if self.last_stream == "0-0":
+
+                message = {"error": "The ID specified in XADD must be greater than 0-0"}
+            else:
+                message = {
+                    "error": "The ID specified in XADD is equal or smaller than the target stream top item"
+                }
             return message
 
     def call_args(self, arg: str, param: int):
