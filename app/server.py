@@ -27,7 +27,6 @@ class Server:
         self.config.db_path = path
 
         self.db.update_store(self.store, path)
-        print(path)
 
         # Serve clients indefinitely
         async with server:
@@ -82,5 +81,8 @@ class Server:
                 return list(key_value_pair.keys())
             else:
                 return None
+        elif keyword == "TYPE":
+            value_type = self.store.type_check(args[0])
+            return value_type
         else:
             return None

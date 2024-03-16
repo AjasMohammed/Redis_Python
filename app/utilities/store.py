@@ -86,6 +86,20 @@ class Store:
                 return False
             return True
 
+    def type_check(self, key: str):
+        value, _ = self.store.get(key, (None, None))
+        if value:
+            if isinstance(value, str):
+                return "string"
+            elif isinstance(value, int):
+                return "integer"
+            elif isinstance(value, list):
+                return "list"
+            elif isinstance(value, dict):
+                return "hash"
+
+        return "none"
+
     @staticmethod
     def px(expire_time: int):  # Expire time in milliseconds
         current_time = time.time() * 1000
