@@ -76,7 +76,6 @@ class Store:
 
         self.last_stream = id
 
-        print(self.stream)
         return id
 
     def xrange(self, key: str, args: list):
@@ -194,13 +193,20 @@ class Store:
 
     @staticmethod
     def collect_range_data(data: dict, start, end):
-        ms, _ = data[0].split("-")
+        ms, sq = data[0].split("-")
         if start.isdigit() and end.isdigit():
             start, end = int(start), int(end)
+            if int(ms) >= start and int(ms) <= end:
+                return True
         else:
-            start, end = int(start.split("-")[0]), int(end.split("-")[0])
-        if int(ms) >= start and int(ms) <= end:
+            start_ms, start_sq = start.split("-")
+            end_ms, end_sq = end.split("-")
+        if int(ms) == int(start_ms) or int(ms) == int(end_ms):
+            if int(sq) >= int(start_sq) and int(sq) <= int(end_sq):
+                return True
+        elif int(ms) > int(start_ms) and int(ms) < int(end_ms):
             return True
+        return False
 
 
 if __name__ == "__main__":
