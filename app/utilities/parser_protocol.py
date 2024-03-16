@@ -19,7 +19,7 @@ class RedisProtocolParser:
             if data.isdigit():
                 self.encoded = self.integer(data, True)
             else:
-                if data.lower() in ["pong", "ok", 'string', 'integer', 'list', 'hash', 'none']:
+                if data.lower() in ["pong", "ok", 'string', 'integer', 'list', 'hash', 'stream', 'none']:
                     self.encoded = self.simple_string(data, True)
                 else:
                     self.encoded = self.bulk_string(data, encode=True)

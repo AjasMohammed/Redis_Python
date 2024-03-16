@@ -84,5 +84,10 @@ class Server:
         elif keyword == "TYPE":
             value_type = self.store.type_check(args[0])
             return value_type
+        elif keyword == "XADD":
+            key = args.pop(0)
+            id = args.pop(0)
+            self.store.xadd(key, id, args)
+            return id
         else:
             return None

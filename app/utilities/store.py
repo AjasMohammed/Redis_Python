@@ -5,6 +5,7 @@ class Store:
 
     def __init__(self):
         self.store = {}
+        self.stream = {}
 
         self.arguments = {
             "px": self.px,
@@ -57,6 +58,12 @@ class Store:
             return None
         return value
 
+    def xadd(self, key: str, id: str, data: list):
+        key_value = {data[i]: data[i + 1] for i in range(0, len(data), 2)}
+        key_value["id"] = id
+        self.stream[key] = key_value
+        return True
+
     def call_args(self, arg: str, param: int):
         """
         A function to call the specified argument with the given parameter.
@@ -97,6 +104,10 @@ class Store:
                 return "list"
             elif isinstance(value, dict):
                 return "hash"
+        else:
+            value = self.stream.get(key, None)
+            if value:
+                return "stream"
 
         return "none"
 
