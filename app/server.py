@@ -90,5 +90,9 @@ class Server:
             id = args.pop(0)
             response = self.store.xadd(key, id, args)
             return response
+        elif keyword == "XRANGE":
+            key = args.pop(0)
+            response = self.store.xrange(key, args)
+            return response
         else:
             return None

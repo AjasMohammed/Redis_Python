@@ -1,6 +1,21 @@
+import logging
+
+
 DELIMETER = "\r\n"
 
+
 class RedisProtocolParser:
+    STRING_CONSTANTS = {
+        "pong",
+        "ok",
+        "string",
+        "integer",
+        "list",
+        "hash",
+        "stream",
+        "none",
+    }
+
     def __init__(self):
         self.decoded = None
         self.encoded = None
@@ -8,19 +23,19 @@ class RedisProtocolParser:
     def encoder(self, data: bytes):
         self.encoded = None
         if isinstance(data, str):
-            if data.isdigit():
-                self.encoded = self.integer(data, encode=True)
+            # if data.isdigit():
+            #     self.encoded = self.integer(data, encode=True)
+            # else:
+            if data.lower() in self.STRING_CONSTANTS:
+                self.encoded = self.simple_string(data, encode=True)
             else:
-                if data.lower() in ["pong", "ok", 'string', 'integer', 'list', 'hash', 'stream', 'none']:
-                    self.encoded = self.simple_string(data, encode=True)
-                else:
-                    self.encoded = self.bulk_string(data, encode=True)
+                self.encoded = self.bulk_string(data, encode=True)
 
         elif isinstance(data, list):
             self.encoded = self.array(data, encode=True)
-        
+
         elif isinstance(data, dict):
-            self.encoded = self.simple_error(data['error'], encode=True)
+            self.encoded = self.simple_error(data["error"], encode=True)
 
         else:
             self.encoded = "$-1\r\n"  # Null Bulk String
@@ -43,6 +58,7 @@ class RedisProtocolParser:
             if data.startswith("*"):
                 self.decoded = []
                 data = data[index + 2 :]
+                # print('List Data : ',data)
             elif data.startswith("$"):
                 data, keyword = self.bulk_string(data, index)
                 self.join_data(keyword)

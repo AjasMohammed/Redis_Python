@@ -64,12 +64,29 @@ class Store:
         if isinstance(validation, dict):
             print("Vallidation error: ", validation)
             return validation
+
         id = validation
-        key_value = {data[i]: data[i + 1] for i in range(0, len(data), 2)}
-        key_value["id"] = id
-        self.stream[key] = key_value
+
+        slot = self.stream.get(key, None)
+        if slot:
+            self.stream[key][id] = data
+        else:
+            self.stream[key] = {id: data}
+
         self.last_stream = id
+
+        print(self.stream)
         return id
+    
+    def xrange(self, key: str, args: list):
+        start, end = args
+        array = self.stream.get(key, {})
+        print(array)
+        data = list(filter(lambda x: self.collect_range_data(x, start, end), array.items()))
+        data = list(map(list, data))
+        return data
+        
+
 
     def call_args(self, arg: str, param: int):
         """
@@ -172,6 +189,14 @@ class Store:
         else:
             message["error"] = "The ID specified in XADD is equal or smaller than the target stream top item"
         return message
+
+    @staticmethod
+    def collect_range_data(data: dict, start, end):
+        print(data)
+        data = data
+        ms, sq = data[0].split("-")
+        if int(ms) >= int(start) and int(ms) <= int(end):
+            return True
 
 
 if __name__ == "__main__":
