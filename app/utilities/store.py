@@ -61,21 +61,14 @@ class Store:
 
     def xadd(self, key: str, id: str, data: list):
         validation = self.validate_stream_id(id, self.last_stream)
-        if validation:
+        if validation == True:
             key_value = {data[i]: data[i + 1] for i in range(0, len(data), 2)}
             key_value["id"] = id
             self.stream[key] = key_value
             self.last_stream = id
             return id
-        else:
-            if self.last_stream == "0-0":
-
-                message = {"error": "The ID specified in XADD must be greater than 0-0"}
-            else:
-                message = {
-                    "error": "The ID specified in XADD is equal or smaller than the target stream top item"
-                }
-            return message
+        print("Vallidation error: ", validation)
+        return validation
 
     def call_args(self, arg: str, param: int):
         """
@@ -139,14 +132,21 @@ class Store:
 
     @staticmethod
     def validate_stream_id(id, last_id):
+        message = {}
         ms, sq = id.split("-")
         lms, lsq = last_id.split("-")
-        if ms > lms:
+        if id == "0-0":
+            message["error"] = "The ID specified in XADD must be greater than 0-0"
+        elif int(ms) > int(lms):
             return True
-        elif ms == lms:
-            if sq > lsq:
+        elif int(ms) == int(lms):
+            if int(sq) > int(lsq):
                 return True
-        return False
+            else:
+                message["error"] = "The ID specified in XADD is equal or smaller than the target stream top item"
+        else:
+            message["error"] = "The ID specified in XADD is equal or smaller than the target stream top item"
+        return message
 
 
 if __name__ == "__main__":
