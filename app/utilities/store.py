@@ -81,6 +81,12 @@ class Store:
     def xrange(self, key: str, args: list):
         start, end = args
         array = self.stream.get(key, {})
+        if start == '-':
+            start = '0-0'
+        elif start.isdigit():
+            start += '-0'
+        if end == '+':
+            end = self.last_stream
         data = list(
             filter(lambda x: self.collect_range_data(x, start, end), array.items())
         )
@@ -194,16 +200,14 @@ class Store:
     @staticmethod
     def collect_range_data(data: dict, start, end):
         ms, sq = data[0].split("-")
-        if start.isdigit() and end.isdigit():
-            start, end = int(start), int(end)
-            if int(ms) >= start and int(ms) <= end:
+        start_ms, start_sq = start.split("-")
+
+        if end.isdigit():
+            end = int(end)
+            if int(ms) >= start_ms and int(ms) <= end:
                 return True
 
         else:
-            if start == '-':
-                start_ms, start_sq = 0, 0
-            else:
-                start_ms, start_sq = start.split("-")
             end_ms, end_sq = end.split("-")
         if int(ms) == int(start_ms) or int(ms) == int(end_ms):
             if int(sq) >= int(start_sq) and int(sq) <= int(end_sq):
