@@ -1,4 +1,5 @@
 import time
+import logging
 
 
 class Store:
@@ -77,16 +78,15 @@ class Store:
 
         print(self.stream)
         return id
-    
+
     def xrange(self, key: str, args: list):
         start, end = args
         array = self.stream.get(key, {})
-        print(array)
-        data = list(filter(lambda x: self.collect_range_data(x, start, end), array.items()))
+        data = list(
+            filter(lambda x: self.collect_range_data(x, start, end), array.items())
+        )
         data = list(map(list, data))
         return data
-        
-
 
     def call_args(self, arg: str, param: int):
         """
@@ -147,7 +147,7 @@ class Store:
     def ex(expire_time: int):  # Expire time in seconds
         current_time = time.time()
         return current_time + expire_time
-    
+
     @staticmethod
     def generate_sq(ms, sq, lms, lsq):
         if ms == lms:
@@ -155,7 +155,7 @@ class Store:
         else:
             sq = 0
         return sq
-    
+
     @staticmethod
     def generate_id(last_id):
         lms, lsq = last_id.split("-")
@@ -163,16 +163,16 @@ class Store:
         sq = 0
         if ms == int(lms):
             sq = int(lsq) + 1
-            
+
         return f"{ms}-{sq}"
 
     @staticmethod
     def validate_stream_id(id, last_id):
         message = {}
-        if id == '*':
+        if id == "*":
             id = Store.generate_id(last_id)
             return id
-        
+
         ms, sq = id.split("-")
         lms, lsq = last_id.split("-")
         if sq == "*":
@@ -183,19 +183,23 @@ class Store:
         elif int(ms) > int(lms):
             return id
         elif int(ms) == int(lms) and int(sq) > int(lsq):
-                return id
-            # else:
-            #     message["error"] = "The ID specified in XADD is equal or smaller than the target stream top item"
+            return id
+        # else:
+        #     message["error"] = "The ID specified in XADD is equal or smaller than the target stream top item"
         else:
-            message["error"] = "The ID specified in XADD is equal or smaller than the target stream top item"
+            message["error"] = (
+                "The ID specified in XADD is equal or smaller than the target stream top item"
+            )
         return message
 
     @staticmethod
     def collect_range_data(data: dict, start, end):
-        print(data)
-        data = data
-        ms, sq = data[0].split("-")
-        if int(ms) >= int(start) and int(ms) <= int(end):
+        ms, _ = data[0].split("-")
+        if start.isdigit() and end.isdigit():
+            start, end = int(start), int(end)
+        else:
+            start, end = int(start.split("-")[0]), int(end.split("-")[0])
+        if int(ms) >= start and int(ms) <= end:
             return True
 
 
