@@ -138,10 +138,24 @@ class Store:
         else:
             sq = 0
         return sq
+    
+    @staticmethod
+    def generate_id(last_id):
+        lms, lsq = last_id.split("-")
+        ms = int(time.time() * 1000)
+        sq = 0
+        if ms == int(lms):
+            sq = int(lsq) + 1
+            
+        return f"{ms}-{sq}"
 
     @staticmethod
     def validate_stream_id(id, last_id):
         message = {}
+        if id == '*':
+            id = Store.generate_id(last_id)
+            return id
+        
         ms, sq = id.split("-")
         lms, lsq = last_id.split("-")
         if sq == "*":
