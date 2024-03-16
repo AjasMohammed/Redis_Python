@@ -198,8 +198,12 @@ class Store:
             start, end = int(start), int(end)
             if int(ms) >= start and int(ms) <= end:
                 return True
+
         else:
-            start_ms, start_sq = start.split("-")
+            if start == '-':
+                start_ms, start_sq = 0, 0
+            else:
+                start_ms, start_sq = start.split("-")
             end_ms, end_sq = end.split("-")
         if int(ms) == int(start_ms) or int(ms) == int(end_ms):
             if int(sq) >= int(start_sq) and int(sq) <= int(end_sq):
