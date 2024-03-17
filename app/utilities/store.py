@@ -1,5 +1,5 @@
 import time
-
+import asyncio
 
 class Store:
 
@@ -62,7 +62,7 @@ class Store:
     def xadd(self, key: str, id: str, data: list):
         validation = self.validate_stream_id(id, self.last_stream)
         if isinstance(validation, dict):
-            print("Vallidation error: ", validation)
+            print("Validation error: ", validation)
             return validation
 
         id = validation
@@ -92,7 +92,23 @@ class Store:
         data = list(map(list, data))
         return data
 
-    def xread(self, streams: list, id: str):
+    async def xread(self, streams: list, id: str, block: int | None = None):
+        print("BLOCK :", block)
+        if block:
+            block_ms = (time.time() * 1000) + block
+            last = self.last_stream
+            while True:
+                x = await self.listen_stream(last, self.last_stream)
+                print("ID : ", id)
+                print("Last ID : ", self.last_stream)
+                print('X :', x)
+                if x:
+                    id = last
+                    break
+                elif (time.time() * 1000) > block_ms:
+                    return None
+                await asyncio.sleep(0.2)
+
         response = []
         if id.isdigit():
             id += "-0"
@@ -239,6 +255,16 @@ class Store:
                     result.append([key, value])
         return result
 
+    @staticmethod
+    async def listen_stream(last_id, latest_id):
+        ms, sq = latest_id.split("-")
+        lms, lsq = last_id.split("-")
+        print('Latest ID : ', latest_id)
+        if int(ms) ==  int(lms) and int(sq) == int(lsq):
+            return False
+        elif int(ms) < int(lms):
+            return False
+        return True
 
 if __name__ == "__main__":
     s = Store()
