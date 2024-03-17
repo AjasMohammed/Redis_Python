@@ -94,18 +94,18 @@ class Store:
 
     async def xread(self, streams: list, id: str, block: int | None = None):
         print("BLOCK :", block)
-        if block:
+        if block != None:
             block_ms = (time.time() * 1000) + block
             last = self.last_stream
             while True:
                 x = await self.listen_stream(last, self.last_stream)
-                print("ID : ", id)
-                print("Last ID : ", self.last_stream)
-                print('X :', x)
+                # print("ID : ", id)
+                # print("Last ID : ", self.last_stream)
+                # print('X :', x)
                 if x:
                     id = last
                     break
-                elif (time.time() * 1000) > block_ms:
+                elif (time.time() * 1000) > block_ms and block != 0:
                     return None
                 await asyncio.sleep(0.2)
 

@@ -96,7 +96,7 @@ class Server:
             return response
         elif keyword == "XREAD":
             block_ms = None
-            block = self.check_index('BLOCK', args)
+            block = self.check_index("BLOCK", args)
             if block != None:
                 block_ms = int(args[block + 1])
                 args = args[block + 2 :]
@@ -108,15 +108,10 @@ class Server:
                 )
             )
             id = args[len(streams) + 1]
-            print('ARGS :', args)
-            print('STREAMS :', streams)
-            print('BLOCK MS :', block_ms)
-
             response = await self.store.xread(streams, id, block_ms)
             return response
         else:
             return None
-
 
     @staticmethod
     def check_index(keyword, array):
