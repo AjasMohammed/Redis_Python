@@ -81,17 +81,28 @@ class Store:
     def xrange(self, key: str, args: list):
         start, end = args
         array = self.stream.get(key, {})
-        if start == '-':
-            start = '0-0'
+        if start == "-":
+            start = "0-0"
         elif start.isdigit():
-            start += '-0'
-        if end == '+':
+            start += "-0"
+        if end == "+":
             end = self.last_stream
         data = list(
             filter(lambda x: self.collect_range_data(x, start, end), array.items())
         )
         data = list(map(list, data))
         return data
+
+    def xread(self, streams: list, id: str):
+        response = []
+        if id.isdigit():
+            id += "-0"
+        for key in streams:
+            array = self.stream.get(key, {})
+            result = self.read_stream(array, id)
+
+            response.append([key, result])
+        return response
 
     def call_args(self, arg: str, param: int):
         """
@@ -198,7 +209,7 @@ class Store:
         return message
 
     @staticmethod
-    def collect_range_data(data: dict, start, end):
+    def collect_range_data(data: dict, start: str, end: str):
         ms, sq = data[0].split("-")
         start_ms, start_sq = start.split("-")
 
@@ -215,6 +226,19 @@ class Store:
         elif int(ms) > int(start_ms) and int(ms) < int(end_ms):
             return True
         return False
+
+    @staticmethod
+    def read_stream(data: dict, start: str):
+        start_ms, start_sq = start.split("-")
+        result = []
+        for key, value in data.items():
+            ms, sq = key.split("-")
+            if int(ms) > int(start_ms):
+                result.append([key, value])
+            elif int(ms) == int(start_ms):
+                if int(sq) > int(start_sq):
+                    result.append([key, value])
+        return result
 
 
 if __name__ == "__main__":

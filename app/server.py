@@ -94,5 +94,16 @@ class Server:
             key = args.pop(0)
             response = self.store.xrange(key, args)
             return response
+        elif keyword == "XREAD":
+            streams = list(
+                filter(
+                    lambda x: (x.isalpha() or x.isalnum() or "_" in x)
+                    and not x.isdigit(),
+                    args[1:],
+                )
+            )
+            id = args[len(streams) + 1]
+            response = self.store.xread(streams, id)
+            return response
         else:
             return None
