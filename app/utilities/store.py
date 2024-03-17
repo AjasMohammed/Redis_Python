@@ -1,5 +1,4 @@
 import time
-import logging
 
 
 class Store:
@@ -119,7 +118,7 @@ class Store:
         if func:
             return func(param)
 
-    def check_availability(self, key: str):
+    def check_availability(self, key: str) -> bool:
         """
         Check the availability of a key in the store and return True if it is available,
         False otherwise.
@@ -133,7 +132,7 @@ class Store:
                 return False
             return True
 
-    def type_check(self, key: str):
+    def type_check(self, key: str) -> str:
         value, _ = self.store.get(key, (None, None))
         if value:
             if isinstance(value, str):
@@ -165,7 +164,7 @@ class Store:
         return current_time + expire_time
 
     @staticmethod
-    def generate_sq(ms, sq, lms, lsq):
+    def generate_sq(ms: str, sq: str, lms: str, lsq: str) -> int:
         if ms == lms:
             sq = int(lsq) + 1
         else:
@@ -173,7 +172,7 @@ class Store:
         return sq
 
     @staticmethod
-    def generate_id(last_id):
+    def generate_id(last_id: str) -> str:
         lms, lsq = last_id.split("-")
         ms = int(time.time() * 1000)
         sq = 0
@@ -183,7 +182,7 @@ class Store:
         return f"{ms}-{sq}"
 
     @staticmethod
-    def validate_stream_id(id, last_id):
+    def validate_stream_id(id: str, last_id: str) -> str:
         message = {}
         if id == "*":
             id = Store.generate_id(last_id)
@@ -209,7 +208,7 @@ class Store:
         return message
 
     @staticmethod
-    def collect_range_data(data: dict, start: str, end: str):
+    def collect_range_data(data: dict, start: str, end: str) -> bool:
         ms, sq = data[0].split("-")
         start_ms, start_sq = start.split("-")
 
@@ -228,7 +227,7 @@ class Store:
         return False
 
     @staticmethod
-    def read_stream(data: dict, start: str):
+    def read_stream(data: dict, start: str) -> list:
         start_ms, start_sq = start.split("-")
         result = []
         for key, value in data.items():
