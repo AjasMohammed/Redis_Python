@@ -21,12 +21,23 @@ async def main():
         default="dump.rdb",
         help="Filename to store data",
     )
+    parser.add_argument(
+        "--replicaof",
+        default=[],
+        nargs=2,
+        help="Replica server",
+    )
     args = parser.parse_args()  # parse commandline arguments
 
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
-
-    config = ServerConfiguration(dir=args.dir, dbfilename=args.dbfilename, port=args.port)
+    
+    config = ServerConfiguration(
+        dir=args.dir, dbfilename=args.dbfilename, port=args.port
+    )
+    if args.replicaof:
+        config.replication.role = 'slave'
+        print(args.replicaof)
 
     # Start the server
     server = Server(config)
