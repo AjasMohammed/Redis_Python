@@ -48,6 +48,7 @@ class Server:
             logging.debug(f"bytes data is {byte_data}")
             result = await self.handle_command(byte_data)
             encoded = resp.encoder(result)
+            logging.debug(f"ENCODED DATA : {encoded}")
             if encoded:
                 writer.write(encoded)
             else:
@@ -110,6 +111,10 @@ class Server:
             id = args[len(streams) + 1]
             response = await self.store.xread(streams, id, block_ms)
             return response
+        elif keyword == 'INFO':
+            if args[0].lower() == 'replication':
+                rep = self.config.replication.view_info()
+                return rep
         else:
             return None
 

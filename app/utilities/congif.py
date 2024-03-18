@@ -1,4 +1,17 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict, field
+
+
+@dataclass(kw_only=True)
+class Replication:
+
+    role: str = "master"
+
+    def view_info(self):
+        key_value_pairs = asdict(self)
+        response = " ".join(
+            [f"{key}:{value}" for key, value in key_value_pairs.items()]
+        )
+        return response
 
 
 @dataclass(kw_only=True)
@@ -8,6 +21,8 @@ class ServerConfiguration:
     dir: str
     dbfilename: str
     db_path: str = None
+
+    replication: list = field(default_factory=Replication)
 
     def handle_config(self, new_conf: list):
         keyword = new_conf.pop(0)
