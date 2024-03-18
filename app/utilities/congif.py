@@ -10,9 +10,8 @@ class Replication:
 
     def view_info(self):
         key_value_pairs = asdict(self)
-        response = " ".join(
-            [f"{key}:{value}" for key, value in key_value_pairs.items()]
-        )
+        response = [f"{key}:{value}" for key, value in key_value_pairs.items()]
+        
         return response
 
 
