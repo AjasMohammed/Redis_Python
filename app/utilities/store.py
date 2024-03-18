@@ -1,6 +1,7 @@
 import time
 import asyncio
 
+
 class Store:
 
     def __init__(self):
@@ -96,15 +97,22 @@ class Store:
         print("BLOCK :", block)
         if block != None:
             block_ms = (time.time() * 1000) + block
+            start = id
             last = self.last_stream
+            print("Start : ", start)
             while True:
                 x = await self.listen_stream(last, self.last_stream)
                 # print("ID : ", id)
                 # print("Last ID : ", self.last_stream)
                 # print('X :', x)
                 if x:
-                    id = last
-                    break
+                    if start == "$":
+                        print("returning....")
+                        response = await self.xread(streams, last)
+                        return response
+                    else:
+                        id = last
+                        break
                 elif (time.time() * 1000) > block_ms and block != 0:
                     return None
                 await asyncio.sleep(0.2)
@@ -118,6 +126,27 @@ class Store:
 
             response.append([key, result])
         return response
+
+    async def xread_blocking(self, streams, id, block):
+        block_ms = (time.time() * 1000) + block
+        start = id
+        last = self.last_stream
+        print("Start : ", start)
+        while True:
+            x = await self.listen_stream(last, self.last_stream)
+            # print("ID : ", id)
+            # print("Last ID : ", self.last_stream)
+            # print('X :', x)
+            if x:
+                if start == "$":
+                    response = await self.xread(streams, last)
+                    return response
+                else:
+                    id = last
+                    break
+            elif (time.time() * 1000) > block_ms and block != 0:
+                return None
+            await asyncio.sleep(0.2)
 
     def call_args(self, arg: str, param: int):
         """
@@ -259,12 +288,13 @@ class Store:
     async def listen_stream(last_id, latest_id):
         ms, sq = latest_id.split("-")
         lms, lsq = last_id.split("-")
-        print('Latest ID : ', latest_id)
-        if int(ms) ==  int(lms) and int(sq) == int(lsq):
+        # print('Latest ID : ', latest_id)
+        if int(ms) == int(lms) and int(sq) == int(lsq):
             return False
         elif int(ms) < int(lms):
             return False
         return True
+
 
 if __name__ == "__main__":
     s = Store()
