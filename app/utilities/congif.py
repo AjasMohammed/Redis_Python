@@ -4,7 +4,7 @@ from dataclasses import dataclass
 @dataclass(kw_only=True)
 class ServerConfiguration:
 
-    port: int = 6379
+    port: int
     dir: str
     dbfilename: str
     db_path: str = None

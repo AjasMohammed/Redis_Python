@@ -114,3 +114,4 @@ class DatabaseParser:
     def update_store(self, store: Store, path: str):
         self.database_parser(path)
         store.store.update(self.key_value_pair)
+        return True

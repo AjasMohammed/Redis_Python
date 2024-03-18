@@ -7,6 +7,11 @@ from .server import Server
 async def main():
     parser = argparse.ArgumentParser(description="Redis server")
     parser.add_argument(
+        "--port",
+        default="6379",
+        help="Port to listen on",
+    )
+    parser.add_argument(
         "--dir",
         default="/tmp/redis-files",
         help="Directory to store data",
@@ -21,7 +26,7 @@ async def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
 
-    config = ServerConfiguration(dir=args.dir, dbfilename=args.dbfilename)
+    config = ServerConfiguration(dir=args.dir, dbfilename=args.dbfilename, port=args.port)
 
     # Start the server
     server = Server(config)
