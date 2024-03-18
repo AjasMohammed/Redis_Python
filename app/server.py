@@ -49,6 +49,7 @@ class Server:
             result = await self.handle_command(byte_data)
             encoded = resp.encoder(result)
             logging.debug(f"ENCODED DATA : {encoded}")
+            print(f"ENCODED DATA : {encoded}")
             if encoded:
                 writer.write(encoded)
             else:
