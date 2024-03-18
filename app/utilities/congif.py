@@ -5,13 +5,15 @@ from dataclasses import dataclass, asdict, field
 class Replication:
 
     role: str = "master"
-    master_replid: str = '8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb'
+    master_replid: str = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
     master_repl_offset: int = 0
 
     def view_info(self):
         key_value_pairs = asdict(self)
-        response = [f"{key}:{value}" for key, value in key_value_pairs.items()]
-        
+        response = "\r\n".join(
+            [f"{key}:{value}" for key, value in key_value_pairs.items()]
+        )
+
         return response
 
 
