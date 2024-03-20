@@ -167,8 +167,8 @@ class Server:
         # STEP - 3
         cmd = ["PSYNC", "?", "-1"]
         master.sendall(self.parser.encoder(cmd))
-        # response = master.recv(1024).decode("utf-8")
-        # logging.debug(f"Handshake STEP - 3 Response : {response}")
+        response = master.recv(1024)
+        logging.debug(f"Handshake STEP - 3 Response : {response}")
 
         return
 
