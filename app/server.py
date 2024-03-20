@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import socket
 from .utilities import RedisProtocolParser, Store, DatabaseParser
 
 
@@ -16,6 +17,7 @@ class Server:
         self.config = config
         self.store = Store()
         self.db = DatabaseParser()
+        self.parser = RedisProtocolParser()
 
     async def start_server(self):
         server = await asyncio.start_server(
@@ -27,6 +29,9 @@ class Server:
         self.config.db_path = path
 
         self.db.update_store(self.store, path)
+
+        if self.config.replication.role == "slave":
+            await self.create_handshake()
 
         # Serve clients indefinitely
         async with server:
@@ -42,18 +47,18 @@ class Server:
             logging.debug(f"Recived data: {data}")
             if not data:
                 break
-            resp = RedisProtocolParser()
 
-            byte_data = resp.decoder(data)
+            byte_data = self.parser.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
+
             result = await self.handle_command(byte_data)
-            encoded = resp.encoder(result)
+
+            encoded = self.parser.encoder(result)
             logging.debug(f"ENCODED DATA : {encoded}")
-            print(f"ENCODED DATA : {encoded}")
             if encoded:
                 writer.write(encoded)
             else:
-                # Send PONG response back to the client
+                # Send PONG self.parseronse back to the client
                 writer.write(pong)
             await writer.drain()
         # Close the connection
@@ -90,12 +95,12 @@ class Server:
         elif keyword == "XADD":
             key = args.pop(0)
             id = args.pop(0)
-            response = self.store.xadd(key, id, args)
-            return response
+            self.parseronse = self.store.xadd(key, id, args)
+            return self.parseronse
         elif keyword == "XRANGE":
             key = args.pop(0)
-            response = self.store.xrange(key, args)
-            return response
+            self.parseronse = self.store.xrange(key, args)
+            return self.parseronse
         elif keyword == "XREAD":
             block_ms = None
             block = self.check_index("BLOCK", args)
@@ -110,14 +115,25 @@ class Server:
                 )
             )
             id = args[len(streams) + 1]
-            response = await self.store.xread(streams, id, block_ms)
-            return response
-        elif keyword == 'INFO':
-            if args[0].lower() == 'replication':
+            self.parseronse = await self.store.xread(streams, id, block_ms)
+            return self.parseronse
+        elif keyword == "INFO":
+            if args[0].lower() == "replication":
                 rep = self.config.replication.view_info()
                 return rep
         else:
             return None
+
+    async def create_handshake(self):
+        host = self.config.replication.master_host
+        port = self.config.replication.master_port
+        master = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        master.connect((host, int(port)))
+        master.sendall("*1\r\n$4\r\nPING\r\n".encode("utf-8"))
+        response = master.recv(10254).decode("utf-8")
+        logging.debug(f"Response from master : {response}")
+        return
 
     @staticmethod
     def check_index(keyword, array):

@@ -31,13 +31,14 @@ async def main():
 
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!")
-    
+
     config = ServerConfiguration(
         dir=args.dir, dbfilename=args.dbfilename, port=args.port
     )
     if args.replicaof:
-        config.replication.role = 'slave'
-        print(args.replicaof)
+        config.replication.role = "slave"
+        config.replication.master_host = args.replicaof[0]
+        config.replication.master_port = args.replicaof[1]
 
     # Start the server
     server = Server(config)
