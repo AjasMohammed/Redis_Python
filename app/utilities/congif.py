@@ -16,6 +16,10 @@ class Replication:
 
         return response
 
+    def psync(self):
+        cmd = ["FULLRESYNC", self.master_replid, str(self.master_repl_offset)]
+        return cmd
+
 
 @dataclass(kw_only=True)
 class ServerConfiguration:

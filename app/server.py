@@ -124,7 +124,8 @@ class Server:
         elif keyword == "REPLCONF":
             return "OK"
         elif keyword == "PSYNC":
-            return None
+            response = self.config.replication.psync()
+            return response
         else:
             return None
 
