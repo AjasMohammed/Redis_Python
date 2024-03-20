@@ -61,6 +61,7 @@ class Server:
                 if isinstance(encoded, tuple):
                     data, rdb = encoded
                     writer.write(data)
+                    await writer.drain()
                     writer.write(rdb)
                 else:
                     writer.write(encoded)
@@ -169,6 +170,8 @@ class Server:
         master.sendall(self.parser.encoder(cmd))
         response = master.recv(1024)
         logging.debug(f"Handshake STEP - 3 Response : {response}")
+        response = master.recv(1024)
+        logging.debug(f"Handshake STEP - 3.5 Response : {response}")
 
         return
 
