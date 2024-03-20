@@ -52,8 +52,10 @@ class Server:
             logging.debug(f"bytes data is {byte_data}")
 
             result = await self.handle_command(byte_data)
-
-            encoded = self.parser.encoder(result)
+            if isinstance(result, str):
+                encoded = self.parser.encoder(result)
+            else:
+                encoded = result
             logging.debug(f"ENCODED DATA : {encoded}")
             if encoded:
                 writer.write(encoded)
@@ -124,7 +126,7 @@ class Server:
         elif keyword == "REPLCONF":
             return "OK"
         elif keyword == "PSYNC":
-            response = self.config.replication.psync()
+            response = self.parser.simple_string(self.config.replication.psync(), encode=True)
             return response
         else:
             return None

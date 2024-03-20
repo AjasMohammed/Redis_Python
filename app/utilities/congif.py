@@ -17,7 +17,7 @@ class Replication:
         return response
 
     def psync(self):
-        cmd = ["FULLRESYNC", self.master_replid, str(self.master_repl_offset)]
+        cmd = f"FULLRESYNC {self.master_replid} {self.master_repl_offset}"
         return cmd
 
 

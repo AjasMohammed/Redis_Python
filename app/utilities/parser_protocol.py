@@ -20,7 +20,7 @@ class RedisProtocolParser:
         self.decoded = None
         self.encoded = None
 
-    def encoder(self, data: bytes):
+    def encoder(self, data: list | str | dict) -> bytes | None:
         self.encoded = None
         if isinstance(data, str):
             # if data.isdigit():
