@@ -79,7 +79,6 @@ class Server:
             return "OK"
         elif keyword == "GET":
             data = self.store.get(args[0])
-            print("DATA: ", data)
             return data
         elif keyword == "CONFIG":
             return self.config.handle_config(args)
@@ -130,7 +129,8 @@ class Server:
             response = self.parser.simple_string(
                 self.config.replication.psync(), encode=True
             )
-            return response
+            print('Response : ', response)
+            return bytes(response, 'utf-8')
         else:
             return None
 
