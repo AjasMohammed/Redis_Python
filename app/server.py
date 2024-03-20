@@ -136,28 +136,27 @@ class Server:
         master = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         master.connect((master_host, int(master_port)))
 
+
         # STEP - 1
-        master.sendall("*1\r\n$4\r\nPING\r\n".encode("utf-8"))
+        cmd = ['PING']
+        master.sendall(self.parser.encoder(cmd))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Handshake STEP - 1 Response : {response}")
 
         # STEP - 2
-        master.sendall(
-            f"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n{current_port}\r\n".encode(
-                "utf-8"
-            )
-        )
+        cmd = ['REPLCONF', 'listening-port', str(current_port)]
+        master.sendall(self.parser.encoder(cmd))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Handshake STEP - 2 Response : {response}")
 
-        master.sendall(
-            "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n".encode("utf-8")
-        )
+        cmd = ['REPLCONF', 'capa', 'psync2']
+        master.sendall(self.parser.encoder(cmd))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Handshake STEP - 2.5 Response : {response}")
 
         # STEP - 3
-        master.sendall("*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n".encode("utf-8"))
+        cmd = ['PSYNC', '?', '-1']
+        master.sendall(self.parser.encoder(cmd))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Handshake STEP - 3 Response : {response}")
 
