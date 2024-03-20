@@ -52,13 +52,18 @@ class Server:
             logging.debug(f"bytes data is {byte_data}")
 
             result = await self.handle_command(byte_data)
-            if isinstance(result, bytes):
+            if isinstance(result, bytes | tuple):
                 encoded = result
             else:
                 encoded = self.parser.encoder(result)
             logging.debug(f"ENCODED DATA : {encoded}")
             if encoded:
-                writer.write(encoded)
+                if isinstance(encoded, tuple):
+                    data, rdb = encoded
+                    writer.write(data)
+                    writer.write(rdb)
+                else:
+                    writer.write(encoded)
             else:
                 # Send PONG self.parseronse back to the client
                 writer.write(pong)
@@ -129,8 +134,8 @@ class Server:
             response = self.parser.simple_string(
                 self.config.replication.psync(), encode=True
             )
-            print('Response : ', response)
-            return bytes(response, 'utf-8')
+            empty_rdb = self.config.replication.empty_rdb()
+            return (bytes(response, 'utf-8'), empty_rdb)
         else:
             return None
 
@@ -145,24 +150,24 @@ class Server:
         # STEP - 1
         cmd = ["PING"]
         master.sendall(self.parser.encoder(cmd))
-        response = master.recv(10254).decode("utf-8")
+        response = master.recv(1024).decode("utf-8")
         logging.debug(f"Handshake STEP - 1 Response : {response}")
 
         # STEP - 2
         cmd = ["REPLCONF", "listening-port", str(current_port)]
         master.sendall(self.parser.encoder(cmd))
-        response = master.recv(10254).decode("utf-8")
+        response = master.recv(1024).decode("utf-8")
         logging.debug(f"Handshake STEP - 2 Response : {response}")
 
         cmd = ["REPLCONF", "capa", "psync2"]
         master.sendall(self.parser.encoder(cmd))
-        response = master.recv(10254).decode("utf-8")
+        response = master.recv(1024).decode("utf-8")
         logging.debug(f"Handshake STEP - 2.5 Response : {response}")
 
         # STEP - 3
         cmd = ["PSYNC", "?", "-1"]
         master.sendall(self.parser.encoder(cmd))
-        response = master.recv(10254).decode("utf-8")
+        response = master.recv(1024).decode("utf-8")
         logging.debug(f"Handshake STEP - 3 Response : {response}")
 
         return
