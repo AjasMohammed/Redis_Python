@@ -52,10 +52,10 @@ class Server:
             logging.debug(f"bytes data is {byte_data}")
 
             result = await self.handle_command(byte_data)
-            if isinstance(result, str):
-                encoded = self.parser.encoder(result)
-            else:
+            if isinstance(result, bytes):
                 encoded = result
+            else:
+                encoded = self.parser.encoder(result)
             logging.debug(f"ENCODED DATA : {encoded}")
             if encoded:
                 writer.write(encoded)
@@ -79,6 +79,7 @@ class Server:
             return "OK"
         elif keyword == "GET":
             data = self.store.get(args[0])
+            print("DATA: ", data)
             return data
         elif keyword == "CONFIG":
             return self.config.handle_config(args)
@@ -126,7 +127,9 @@ class Server:
         elif keyword == "REPLCONF":
             return "OK"
         elif keyword == "PSYNC":
-            response = self.parser.simple_string(self.config.replication.psync(), encode=True)
+            response = self.parser.simple_string(
+                self.config.replication.psync(), encode=True
+            )
             return response
         else:
             return None
@@ -139,26 +142,25 @@ class Server:
         master = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         master.connect((master_host, int(master_port)))
 
-
         # STEP - 1
-        cmd = ['PING']
+        cmd = ["PING"]
         master.sendall(self.parser.encoder(cmd))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Handshake STEP - 1 Response : {response}")
 
         # STEP - 2
-        cmd = ['REPLCONF', 'listening-port', str(current_port)]
+        cmd = ["REPLCONF", "listening-port", str(current_port)]
         master.sendall(self.parser.encoder(cmd))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Handshake STEP - 2 Response : {response}")
 
-        cmd = ['REPLCONF', 'capa', 'psync2']
+        cmd = ["REPLCONF", "capa", "psync2"]
         master.sendall(self.parser.encoder(cmd))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Handshake STEP - 2.5 Response : {response}")
 
         # STEP - 3
-        cmd = ['PSYNC', '?', '-1']
+        cmd = ["PSYNC", "?", "-1"]
         master.sendall(self.parser.encoder(cmd))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Handshake STEP - 3 Response : {response}")
