@@ -121,18 +121,32 @@ class Server:
             if args[0].lower() == "replication":
                 rep = self.config.replication.view_info()
                 return rep
+        elif keyword == "REPLCONF":
+            return "OK"
         else:
             return None
 
     async def create_handshake(self):
-        host = self.config.replication.master_host
-        port = self.config.replication.master_port
-        master = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        master_host = self.config.replication.master_host
+        master_port = self.config.replication.master_port
+        current_port = self.config.port
 
-        master.connect((host, int(port)))
+        master = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        master.connect((master_host, int(master_port)))
+
         master.sendall("*1\r\n$4\r\nPING\r\n".encode("utf-8"))
         response = master.recv(10254).decode("utf-8")
         logging.debug(f"Response from master : {response}")
+
+        master.sendall(f'*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n{current_port}\r\n'.encode("utf-8"))
+        response = master.recv(10254).decode("utf-8")
+        logging.debug(f"Response from master : {response}")
+
+        master.sendall('*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n'.encode("utf-8"))
+        response = master.recv(10254).decode("utf-8")
+        logging.debug(f"Response from master : {response}")
+
+
         return
 
     @staticmethod
