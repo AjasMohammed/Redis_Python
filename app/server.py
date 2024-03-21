@@ -68,6 +68,7 @@ class Server:
 
             byte_data = self.parser.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
+            print(f"bytes data is {byte_data}")
 
             if "replconf" == byte_data[0].lower() and peer and byte_data[1] == "listening-port":
                 self.slaves.append((peer[0], byte_data[2]))
@@ -213,7 +214,10 @@ class Server:
 
     async def create_slave_connection(self, slave):
         print("SLAVE : ", slave)
-        reader, writer = await asyncio.open_connection(slave[0], int(slave[1]))
+        try:
+            reader, writer = await asyncio.open_connection(slave[0], int(slave[1]))
+        except Exception as e:
+            print(e)
         return reader, writer
 
     async def propagate_to_slave(self, data):
