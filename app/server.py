@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import socket
 from .utilities import RedisProtocolParser, Store, DatabaseParser
 
 
@@ -70,7 +71,6 @@ class Server:
             logging.info(f'Reciver :  {writer.transport.get_extra_info("peername")}')
             byte_data = self.parser.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
-            print(f"bytes data is {byte_data}")
 
             if (
                 "replconf" == byte_data[0].lower()
@@ -223,11 +223,17 @@ class Server:
 
     async def create_slave_connection(self, slave):
         print("SLAVE : ", slave)
-        reader, writer = await asyncio.open_connection(slave[0], int(slave[1]))
-        return reader, writer
+        try:
+            # Use socket.create_connection to establish a connection
+            slave_socket = socket.create_connection((slave[0], int(slave[1])))
+            reader, writer = await asyncio.open_connection(sock=slave_socket)
+            return reader, writer
+        except Exception as e:
+            print(e)
+            return None, None
 
     async def propagate_to_slave(self, data):
-        print('Slaves : ', self.slaves)
+        print("Slaves : ", self.slaves)
         if self.config.replication.role == "master" and self.slaves:
             for slave in self.slaves:
                 try:
