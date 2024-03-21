@@ -70,7 +70,7 @@ class Server:
             logging.debug(f"bytes data is {byte_data}")
 
             if "replconf" == byte_data[0].lower() and peer and byte_data[1] == "listening-port":
-                self.slaves.append((self.config.replication.master_host, byte_data[2]))
+                self.slaves.append((peer[0], byte_data[2]))
                 peer == None
 
             result = await self.handle_command(byte_data)
