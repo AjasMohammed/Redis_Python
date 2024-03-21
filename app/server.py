@@ -57,6 +57,7 @@ class Server:
     # Define coroutine to handle client connections
     async def handle_client(self, reader, writer):
         peer = writer.get_extra_info("peername")
+        print('PEER: ', peer)
         pong = b"+PONG\r\n"
         while True:
             # Read data from the client
@@ -69,7 +70,7 @@ class Server:
             logging.debug(f"bytes data is {byte_data}")
 
             if "replconf" == byte_data[0].lower() and peer and byte_data[1] == "listening-port":
-                self.slaves.append((peer[0], byte_data[2]))
+                self.slaves.append((self.config.replication.master_host, byte_data[2]))
                 peer == None
 
             result = await self.handle_command(byte_data)
