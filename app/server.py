@@ -57,7 +57,8 @@ class Server:
     # Define coroutine to handle client connections
     async def handle_client(self, reader, writer):
         peer = writer.get_extra_info("peername")
-        print('PEER: ', peer)
+        self.slaves.append((peer[0], peer[1]))
+        print("PEER: ", peer)
         pong = b"+PONG\r\n"
         while True:
             # Read data from the client
@@ -70,7 +71,11 @@ class Server:
             logging.debug(f"bytes data is {byte_data}")
             print(f"bytes data is {byte_data}")
 
-            if "replconf" == byte_data[0].lower() and peer and byte_data[1] == "listening-port":
+            if (
+                "replconf" == byte_data[0].lower()
+                and peer
+                and byte_data[1] == "listening-port"
+            ):
                 self.slaves.append((peer[0], byte_data[2]))
                 peer == None
 
@@ -92,8 +97,11 @@ class Server:
                 writer.write(pong)
             await writer.drain()
 
-            if self.config.replication.role == "master" and byte_data[0].upper() in self.writable_cmd:
-                print('propagating to slave')
+            if (
+                self.config.replication.role == "master"
+                and byte_data[0].upper() in self.writable_cmd
+            ):
+                print("propagating to slave")
                 await self.propagate_to_slave(data)
         # Close the connection
         writer.close()
@@ -214,20 +222,21 @@ class Server:
 
     async def create_slave_connection(self, slave):
         print("SLAVE : ", slave)
-        try:
-            reader, writer = await asyncio.open_connection(slave[0], int(slave[1]))
-        except Exception as e:
-            print(e)
+        reader, writer = await asyncio.open_connection(slave[0], int(slave[1]))
         return reader, writer
 
     async def propagate_to_slave(self, data):
         if self.config.replication.role == "master" and self.slaves:
             for slave in self.slaves:
-                reader, writer = await self.create_slave_connection(slave)
-                writer.write(data)
-                r = await reader.read(1024)
-                print('READ : ', r)
-                writer.close()
+                try:
+                    reader, writer = await self.create_slave_connection(slave)
+                    writer.write(data)
+                    r = await reader.read(1024)
+                    print("READ : ", r)
+                    writer.close()
+                except Exception as e:
+                    print(e)
+                    continue
 
     @staticmethod
     def check_index(keyword, array):
