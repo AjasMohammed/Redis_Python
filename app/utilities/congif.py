@@ -31,6 +31,7 @@ class Replication:
 class ServerConfiguration:
 
     port: int
+    host: str = "localhost"
     dir: str
     dbfilename: str
     db_path: str = None

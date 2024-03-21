@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import socket
 from .utilities import RedisProtocolParser, Store, DatabaseParser
 
 
@@ -18,10 +17,28 @@ class Server:
         self.store = Store()
         self.db = DatabaseParser()
         self.parser = RedisProtocolParser()
+        self.slaves = []
+        self.writable_cmd = [
+            "SET",
+            "GETSET",
+            "DEL",
+            "INCR",
+            "DECR",
+            "INCRBY",
+            "DECRBY",
+            "APPEND",
+            "SETBIT",
+            "SETEX",
+            "MSET",
+            "MSETNX",
+            "HSET",
+            "HSETNX",
+            "HMSET",
+        ]
 
     async def start_server(self):
         server = await asyncio.start_server(
-            self.handle_client, "localhost", self.config.port, reuse_port=True
+            self.handle_client, self.config.host, self.config.port, reuse_port=True
         )
 
         # set path to the .rdb file in the config
@@ -39,7 +56,7 @@ class Server:
 
     # Define coroutine to handle client connections
     async def handle_client(self, reader, writer):
-        logging.info(f"CLIENT CONNECTED :- {writer.get_extra_info('peername')}")
+        peer = writer.get_extra_info("peername")
         pong = b"+PONG\r\n"
         while True:
             # Read data from the client
@@ -51,12 +68,15 @@ class Server:
             byte_data = self.parser.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
 
+            if "replconf" == byte_data[0].lower() and peer:
+                self.slaves.append((peer[0], byte_data[2]))
+                peer == None
+
             result = await self.handle_command(byte_data)
             if isinstance(result, bytes | tuple):
                 encoded = result
             else:
                 encoded = self.parser.encoder(result)
-            logging.debug(f"ENCODED DATA : {encoded}")
             if encoded:
                 if isinstance(encoded, tuple):
                     data, rdb = encoded
@@ -69,6 +89,10 @@ class Server:
                 # Send PONG self.parseronse back to the client
                 writer.write(pong)
             await writer.drain()
+            
+            if self.config.replication.role == "master" and byte_data[0].upper() in self.writable_cmd:
+                print('propagating to slave')
+                await self.propagate_to_slave(data)
         # Close the connection
         writer.close()
 
@@ -136,7 +160,7 @@ class Server:
                 self.config.replication.psync(), encode=True
             )
             empty_rdb = self.config.replication.empty_rdb()
-            return (bytes(response, 'utf-8'), empty_rdb)
+            return (bytes(response, "utf-8"), empty_rdb)
         else:
             return None
 
@@ -145,35 +169,58 @@ class Server:
         master_port = self.config.replication.master_port
         current_port = self.config.port
 
-        master = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        master.connect((master_host, int(master_port)))
+        logging.info("Handshake Started...")
+        writer = None
+        try:
+            print(f"Connecting to {master_host}:{master_port}")
+            reader, writer = await asyncio.open_connection(
+                master_host, int(master_port)
+            )
 
-        # STEP - 1
-        cmd = ["PING"]
-        master.sendall(self.parser.encoder(cmd))
-        response = master.recv(1024).decode("utf-8")
-        logging.debug(f"Handshake STEP - 1 Response : {response}")
+            # STEP - 1
+            cmd = ["PING"]
+            writer.write(self.parser.encoder(cmd))
+            await writer.drain()
+            response = await reader.read(1024)
+            logging.info(f"Handshake STEP - 1 Response : {response.decode('utf-8')}")
 
-        # STEP - 2
-        cmd = ["REPLCONF", "listening-port", str(current_port)]
-        master.sendall(self.parser.encoder(cmd))
-        response = master.recv(1024).decode("utf-8")
-        logging.debug(f"Handshake STEP - 2 Response : {response}")
+            # STEP - 2
+            cmd = ["REPLCONF", "listening-port", str(current_port)]
+            writer.write(self.parser.encoder(cmd))
+            await writer.drain()
+            response = await reader.read(1024)
+            logging.info(f"Handshake STEP - 2 Response : {response.decode('utf-8')}")
 
-        cmd = ["REPLCONF", "capa", "psync2"]
-        master.sendall(self.parser.encoder(cmd))
-        response = master.recv(1024).decode("utf-8")
-        logging.debug(f"Handshake STEP - 2.5 Response : {response}")
+            cmd = ["REPLCONF", "capa", "psync2"]
+            writer.write(self.parser.encoder(cmd))
+            await writer.drain()
+            response = await reader.read(1024)
+            logging.info(f"Handshake STEP - 2.5 Response : {response.decode('utf-8')}")
 
-        # STEP - 3
-        cmd = ["PSYNC", "?", "-1"]
-        master.sendall(self.parser.encoder(cmd))
-        response = master.recv(1024)
-        logging.debug(f"Handshake STEP - 3 Response : {response}")
-        response = master.recv(1024)
-        logging.debug(f"Handshake STEP - 3.5 Response : {response}")
+            # STEP - 3
+            cmd = ["PSYNC", "?", "-1"]
+            writer.write(self.parser.encoder(cmd))
+            await writer.drain()
+            response = await reader.read(1024)
+            logging.info(f"Handshake STEP - 3 Response : {response}")
 
-        return
+        except Exception as e:
+            logging.error(f"Handshake failed: {e}")
+
+        finally:
+            logging.info("Handshake Completed...")
+
+    async def create_slave_connection(self, slave):
+        reader, writer = await asyncio.open_connection(slave[0], int(slave[1]))
+        return reader, writer
+
+    async def propagate_to_slave(self, data):
+        if self.config.replication.role == "master" and self.slaves:
+            for slave in self.slaves:
+                reader, writer = await self.create_slave_connection(slave)
+                writer.write(data)
+                await reader.read(1024)
+                writer.close()
 
     @staticmethod
     def check_index(keyword, array):
