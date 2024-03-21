@@ -36,11 +36,11 @@ class Server:
             "HMSET",
         ]
 
-    async def start_server(self):
+    async def up_server(self):
         server = await asyncio.start_server(
-            self.handle_client, self.config.host, self.config.port, reuse_port=True
+            self.handle_client, self.config.host, self.config.port
         )
-
+        server.sockets[0].setblocking(False)
         # set path to the .rdb file in the config
         path = os.path.join(self.config.dir, self.config.dbfilename)
         self.config.db_path = path
@@ -55,10 +55,11 @@ class Server:
             await server.serve_forever()
 
     # Define coroutine to handle client connections
-    async def handle_client(self, reader, writer):
+    async def handle_client(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ):
         peer = writer.get_extra_info("peername")
-        self.slaves.append((peer[0], peer[1]))
-        print("PEER: ", peer)
+        logging.info(f"Peer : {peer}")
         pong = b"+PONG\r\n"
         while True:
             # Read data from the client
@@ -66,7 +67,7 @@ class Server:
             logging.debug(f"Recived data: {data}")
             if not data:
                 break
-
+            logging.info(f'Reciver :  {writer.transport.get_extra_info("peername")}')
             byte_data = self.parser.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
             print(f"bytes data is {byte_data}")
@@ -226,6 +227,7 @@ class Server:
         return reader, writer
 
     async def propagate_to_slave(self, data):
+        print('Slaves : ', self.slaves)
         if self.config.replication.role == "master" and self.slaves:
             for slave in self.slaves:
                 try:

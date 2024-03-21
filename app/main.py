@@ -42,8 +42,9 @@ async def main():
 
     # Start the server
     server = Server(config)
-    await server.start_server()
+    await server.up_server()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
