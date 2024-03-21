@@ -68,7 +68,7 @@ class Server:
             byte_data = self.parser.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
 
-            if "replconf" == byte_data[0].lower() and peer:
+            if "replconf" == byte_data[0].lower() and peer and byte_data[1] == "listening-port":
                 self.slaves.append((peer[0], byte_data[2]))
                 peer == None
 
@@ -89,7 +89,7 @@ class Server:
                 # Send PONG self.parseronse back to the client
                 writer.write(pong)
             await writer.drain()
-            
+
             if self.config.replication.role == "master" and byte_data[0].upper() in self.writable_cmd:
                 print('propagating to slave')
                 await self.propagate_to_slave(data)
@@ -211,6 +211,7 @@ class Server:
             logging.info("Handshake Completed...")
 
     async def create_slave_connection(self, slave):
+        print("SLAVE : ", slave)
         reader, writer = await asyncio.open_connection(slave[0], int(slave[1]))
         return reader, writer
 
@@ -219,7 +220,8 @@ class Server:
             for slave in self.slaves:
                 reader, writer = await self.create_slave_connection(slave)
                 writer.write(data)
-                await reader.read(1024)
+                r = await reader.read(1024)
+                print('READ : ', r)
                 writer.close()
 
     @staticmethod

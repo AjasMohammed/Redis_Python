@@ -94,12 +94,10 @@ class Store:
         return data
 
     async def xread(self, streams: list, id: str, block: int | None = None):
-        print("BLOCK :", block)
         if block != None:
             block_ms = (time.time() * 1000) + block
             start = id
             last = self.last_stream
-            print("Start : ", start)
             while True:
                 x = await self.listen_stream(last, self.last_stream)
                 # print("ID : ", id)
@@ -107,7 +105,6 @@ class Store:
                 # print('X :', x)
                 if x:
                     if start == "$":
-                        print("returning....")
                         response = await self.xread(streams, last)
                         return response
                     else:
@@ -131,7 +128,6 @@ class Store:
         block_ms = (time.time() * 1000) + block
         start = id
         last = self.last_stream
-        print("Start : ", start)
         while True:
             x = await self.listen_stream(last, self.last_stream)
             # print("ID : ", id)
