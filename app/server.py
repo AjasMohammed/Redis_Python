@@ -161,7 +161,7 @@ class Server:
             if args[0] == "*":
                 key_value_pair = self.db.key_value_pair
             else:
-                key_value_pair = self.db.database_parser(path = self.config.db_path)
+                key_value_pair = self.db.database_parser(path=self.config.db_path)
             if key_value_pair:
                 return list(key_value_pair.keys())
             else:
@@ -199,16 +199,12 @@ class Server:
                 rep = self.config.replication.view_info()
                 return rep
         elif keyword == "REPLCONF":
-            # if args[0].lower() == "listening-port":
-
             return "OK"
         elif keyword == "PSYNC":
             response = self.parser.simple_string(
                 self.config.replication.psync(), encode=True
             )
             empty_rdb = self.config.replication.empty_rdb()
-            # self.writer.write(bytes(response, "utf-8"))
-            # self.writer.write(empty_rdb)
             return (response.encode("utf-8"), empty_rdb)
         else:
             return None
