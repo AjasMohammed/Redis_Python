@@ -132,9 +132,8 @@ class Server:
                     ):
                         print("propagating to slave")
                         for slave in self.slaves:
-                            print(f"Saving data to queue : {slave}")
+                            # print(f"Saving data to queue : {slave}")
                             await slave.buffer_queue.put(data)
-                            print(f"Slave Tasks : {self.slave_tasks}")
 
             # Close the connection
             except UnicodeDecodeError:
@@ -154,10 +153,12 @@ class Server:
             print(
                 f"Setting key : {args[0]} with value : {args[1]} From {self.config.host}:{self.config.port}"
             )
+            print(f"Current Store: {self.store}")
             self.store.set(args[0], args[1], args[2:])
             return "OK"
         elif keyword == "GET":
             print(f"Getting key : {args[0]} From {self.config.host}:{self.config.port}")
+            print(f"Current Store: {self.store}")
             data = self.store.get(args[0])
             return data
         elif keyword == "CONFIG":
