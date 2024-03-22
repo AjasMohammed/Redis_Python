@@ -3,7 +3,6 @@ import logging
 
 DELIMETER = "\r\n"
 
-
 class RedisProtocolParser:
     STRING_CONSTANTS = {
         "pong",
@@ -134,5 +133,4 @@ if __name__ == "__main__":
     decoded_data = parser.decoder(
         b"*6\r\n$3\r\nSET\r\n$4\r\nname\r\n$9\r\nSpongeBob\r\n$2\r\nPX\r\n$2\r\n10\r\n"
     )
-    # encoded_data = parser.encoder("SET key1 value1")
-    # logging.error(f"Error occurred: {decoded_data}")
+

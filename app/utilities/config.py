@@ -4,11 +4,11 @@ from dataclasses import dataclass, asdict, field
 
 @dataclass
 class Replica:
-    host : str
-    port : int
-    reader : asyncio.StreamReader = None
-    writer : asyncio.StreamWriter = None
-    buffer_queue : asyncio.Queue = field(default_factory=asyncio.Queue)
+    host: str
+    port: int
+    reader: asyncio.StreamReader = None
+    writer: asyncio.StreamWriter = None
+    buffer_queue: asyncio.Queue = field(default_factory=asyncio.Queue)
     is_ready: bool = True
 
 
@@ -24,14 +24,14 @@ class Replication:
         response = "\r\n".join(
             [f"{key}:{value}" for key, value in key_value_pairs.items()]
         )
-        return response + '\r\n'
+        return response + "\r\n"
 
     def psync(self):
         cmd = f"FULLRESYNC {self.master_replid} {self.master_repl_offset}"
         return cmd
-    
+
     def empty_rdb(self):
-        empty_rdb_hex = '524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2'
+        empty_rdb_hex = "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2"
         empty_rdb = bytes.fromhex(empty_rdb_hex)
         res = f"${len(empty_rdb)}\r\n".encode()
         return res + empty_rdb
@@ -67,4 +67,4 @@ class ServerConfiguration:
 if __name__ == "__main__":
     rep = Replication()
     rdb = rep.empty_rdb()
-    print('RDB: ', rdb)
+    print("RDB: ", rdb)
