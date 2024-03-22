@@ -104,36 +104,37 @@ class Server:
                         asyncio.create_task(self.propagate_to_slave(replica))
                     )
                     client = None
-
-                result = await self.handle_command(byte_data)
-                if isinstance(result, bytes | tuple):
-                    encoded = result
-                else:
-                    encoded = self.parser.encoder(result)
-                print(f"Encoded : {encoded}")
-                if encoded:
-                    if isinstance(encoded, tuple):
-                        data, rdb = encoded
-                        writer.write(data)
-                        await writer.drain()
-                        writer.write(rdb)
+                    
+                if byte_data:
+                    result = await self.handle_command(byte_data)
+                    if isinstance(result, bytes | tuple):
+                        encoded = result
                     else:
-                        writer.write(encoded)
-                else:
-                    # Send PONG response back to the client
-                    writer.write(pong)
-                await writer.drain()
+                        encoded = self.parser.encoder(result)
+                    print(f"Encoded : {encoded}")
+                    if encoded:
+                        if isinstance(encoded, tuple):
+                            data, rdb = encoded
+                            writer.write(data)
+                            await writer.drain()
+                            writer.write(rdb)
+                        else:
+                            writer.write(encoded)
+                    else:
+                        # Send PONG response back to the client
+                        writer.write(pong)
+                    await writer.drain()
 
-                if (
-                    self.config.replication.role == "master"
-                    and byte_data
-                    and byte_data[0].upper() in self.writable_cmd
-                ):
-                    print("propagating to slave")
-                    for slave in self.slaves:
-                        print(f"Saving data to queue : {slave}")
-                        await slave.buffer_queue.put(data)
-                        print(f"Slave Tasks : {self.slave_tasks}")
+                    if (
+                        self.config.replication.role == "master"
+                        and byte_data
+                        and byte_data[0].upper() in self.writable_cmd
+                    ):
+                        print("propagating to slave")
+                        for slave in self.slaves:
+                            print(f"Saving data to queue : {slave}")
+                            await slave.buffer_queue.put(data)
+                            print(f"Slave Tasks : {self.slave_tasks}")
 
             # Close the connection
             except UnicodeDecodeError:
