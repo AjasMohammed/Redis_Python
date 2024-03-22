@@ -70,13 +70,14 @@ class Server:
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
+        self.reader, self.writer = reader, writer
         client = writer.get_extra_info("peername")
         logging.info(f"Peer : {client}")
         pong = b"+PONG\r\n"
         while True:
             try:
                 # Read data from the client
-                data = await reader.read(1024)
+                data = await self.reader.read(1024)
                 logging.debug(f"Recived data: {data}")
                 print(f"Recived data: {data}")
                 if not data:
@@ -114,15 +115,15 @@ class Server:
                     if encoded:
                         if isinstance(encoded, tuple):
                             data, rdb = encoded
-                            writer.write(data)
-                            await writer.drain()
-                            writer.write(rdb)
+                            self.writer.write(data)
+                            await self.writer.drain()
+                            self.writer.write(rdb)
                         else:
-                            writer.write(encoded)
+                            self.writer.write(encoded)
                     else:
                         # Send PONG response back to the client
-                        writer.write(pong)
-                    await writer.drain()
+                        self.writer.write(pong)
+                    await self.writer.drain()
 
                 if (
                     self.config.replication.role == "master"
@@ -139,7 +140,7 @@ class Server:
             except UnicodeDecodeError:
                 print(self.config.replication.role)
 
-        writer.close()
+        self.writer.close()
 
     async def handle_command(self, data):
         logging.debug(f"data is {data}")
@@ -207,7 +208,8 @@ class Server:
                 self.config.replication.psync(), encode=True
             )
             empty_rdb = self.config.replication.empty_rdb()
-            return (bytes(response, "utf-8"), empty_rdb)
+            self.writer.write(bytes(response, 'utf-8'))
+            self.writer.write(empty_rdb)
         else:
             return None
 
