@@ -239,6 +239,7 @@ class Server:
             await self.writer.drain()
             response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 1 Response : {response.decode('utf-8')}")
+            print(f"Handshake STEP - 1 Response : {response.decode('utf-8')}")
 
             # STEP - 2
             cmd = ["REPLCONF", "listening-port", str(current_port)]
@@ -246,12 +247,14 @@ class Server:
             await self.writer.drain()
             response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 2 Response : {response.decode('utf-8')}")
+            print(f"Handshake STEP - 2 Response : {response.decode('utf-8')}")
 
             cmd = ["REPLCONF", "capa", "psync2"]
             self.writer.write(self.parser.encoder(cmd))
             await self.writer.drain()
             response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 2.5 Response : {response.decode('utf-8')}")
+            print(f"Handshake STEP - 2.5 Response : {response.decode('utf-8')}")
 
             # STEP - 3
             cmd = ["PSYNC", "?", "-1"]
@@ -259,6 +262,7 @@ class Server:
             await self.writer.drain()
             response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 3 Response : {response}")
+            print(f"Handshake STEP - 3 Response : {response}")
 
         except Exception as e:
             logging.error(f"Handshake failed: {e}")
