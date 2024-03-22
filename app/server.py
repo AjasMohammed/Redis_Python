@@ -153,12 +153,12 @@ class Server:
             print(
                 f"Setting key : {args[0]} with value : {args[1]} From {self.config.host}:{self.config.port}"
             )
-            print(f"Current Store: {self.store}")
+            print(f"Current Store: {self.store.store}")
             self.store.set(args[0], args[1], args[2:])
             return "OK"
         elif keyword == "GET":
             print(f"Getting key : {args[0]} From {self.config.host}:{self.config.port}")
-            print(f"Current Store: {self.store}")
+            print(f"Current Store: {self.store.store}")
             data = self.store.get(args[0])
             return data
         elif keyword == "CONFIG":
