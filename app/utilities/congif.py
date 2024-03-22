@@ -24,8 +24,7 @@ class Replication:
         response = "\r\n".join(
             [f"{key}:{value}" for key, value in key_value_pairs.items()]
         )
-
-        return response
+        return response + '\r\n'
 
     def psync(self):
         cmd = f"FULLRESYNC {self.master_replid} {self.master_repl_offset}"
