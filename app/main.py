@@ -42,7 +42,7 @@ async def main():
 
     # Start the server
     server = Server(config)
-    await server.up_server()
+    await server.start_server()
 
 
 if __name__ == "__main__":

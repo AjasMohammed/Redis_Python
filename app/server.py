@@ -2,7 +2,13 @@ import asyncio
 import logging
 import os
 import socket
-from .utilities import RedisProtocolParser, Store, DatabaseParser
+from .utilities import (
+    RedisProtocolParser,
+    Store,
+    DatabaseParser,
+    Replica,
+    ServerConfiguration,
+)
 
 
 logging.basicConfig(
@@ -14,11 +20,13 @@ logging.basicConfig(
 
 class Server:
     def __init__(self, config):
-        self.config = config
-        self.store = Store()
-        self.db = DatabaseParser()
-        self.parser = RedisProtocolParser()
-        self.slaves = []
+        self.config: ServerConfiguration = config
+        self.store: Store = Store()
+        self.db: DatabaseParser = DatabaseParser()
+        self.parser: RedisProtocolParser = RedisProtocolParser()
+
+        self.slaves: list[Replica] = []
+        self.slave_tasks: list[asyncio.Task] = []
         self.writable_cmd = [
             "SET",
             "GETSET",
@@ -37,11 +45,12 @@ class Server:
             "HMSET",
         ]
 
-    async def up_server(self):
+    async def start_server(self):
         server = await asyncio.start_server(
             self.handle_client, self.config.host, self.config.port
         )
         server.sockets[0].setblocking(False)
+        logging.info(f"Serving on: {server.sockets[0].getsockname()}")
         # set path to the .rdb file in the config
         path = os.path.join(self.config.dir, self.config.dbfilename)
         self.config.db_path = path
@@ -49,61 +58,83 @@ class Server:
         self.db.update_store(self.store, path)
 
         if self.config.replication.role == "slave":
-            await self.create_handshake()
+            await self.handle_replication()
+            await self.listen_master()
 
         # Serve clients indefinitely
         async with server:
+            print("Start serving forever")
             await server.serve_forever()
 
     # Define coroutine to handle client connections
+
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
-        peer = writer.get_extra_info("peername")
-        logging.info(f"Peer : {peer}")
+        client = writer.get_extra_info("peername")
+        logging.info(f"Peer : {client}")
         pong = b"+PONG\r\n"
         while True:
             # Read data from the client
             data = await reader.read(1024)
             logging.debug(f"Recived data: {data}")
+            print(f"Recived data: {data}")
             if not data:
                 break
-            logging.info(f'Reciver :  {writer.transport.get_extra_info("peername")}')
+
             byte_data = self.parser.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
+            print(f"bytes data is {byte_data}")
 
             if (
-                "replconf" == byte_data[0].lower()
-                and peer
+                byte_data
+                and "replconf" == byte_data[0].lower()
+                and client
                 and byte_data[1] == "listening-port"
             ):
-                self.slaves.append((peer[0], byte_data[2]))
-                peer == None
+                replica = Replica(
+                    host=client[0],
+                    port=client[1],
+                    reader=reader,
+                    writer=writer,
+                    buffer_queue=asyncio.Queue(),
+                )
+                self.slaves.append(replica)
+                self.slave_tasks.append(
+                    asyncio.create_task(self.propagate_to_slave(replica))
+                )
+                client = None
 
-            result = await self.handle_command(byte_data)
-            if isinstance(result, bytes | tuple):
-                encoded = result
-            else:
-                encoded = self.parser.encoder(result)
-            if encoded:
-                if isinstance(encoded, tuple):
-                    data, rdb = encoded
-                    writer.write(data)
-                    await writer.drain()
-                    writer.write(rdb)
+            if byte_data:
+                result = await self.handle_command(byte_data)
+                if isinstance(result, bytes | tuple):
+                    encoded = result
                 else:
-                    writer.write(encoded)
-            else:
-                # Send PONG self.parseronse back to the client
-                writer.write(pong)
-            await writer.drain()
+                    encoded = self.parser.encoder(result)
+                if encoded:
+                    if isinstance(encoded, tuple):
+                        data, rdb = encoded
+                        writer.write(data)
+                        await writer.drain()
+                        writer.write(rdb)
+                    else:
+                        writer.write(encoded)
+                else:
+                    # Send PONG response back to the client
+                    writer.write(pong)
+                await writer.drain()
 
             if (
                 self.config.replication.role == "master"
+                and byte_data
                 and byte_data[0].upper() in self.writable_cmd
             ):
                 print("propagating to slave")
-                await self.propagate_to_slave(data)
+                for slave in self.slaves:
+                    print(f"Saving data to queue : {slave}")
+                    await slave.buffer_queue.put(data)
+                    print(f"Slave Tasks : {self.slave_tasks}")
+
         # Close the connection
         writer.close()
 
@@ -165,6 +196,8 @@ class Server:
                 rep = self.config.replication.view_info()
                 return rep
         elif keyword == "REPLCONF":
+            # if args[0].lower() == "listening-port":
+
             return "OK"
         elif keyword == "PSYNC":
             response = self.parser.simple_string(
@@ -175,44 +208,56 @@ class Server:
         else:
             return None
 
-    async def create_handshake(self):
+    async def listen_master(self):
+        print("Listening Master")
+        try:
+            while True:
+                try:
+                    await self.handle_client(self.reader, self.writer)
+                except ConnectionResetError:
+                    print("Connection err")
+                    return
+        except asyncio.CancelledError:
+            self.writer.close()
+            await self.writer.wait_closed()
+
+    async def handle_replication(self):
         master_host = self.config.replication.master_host
         master_port = self.config.replication.master_port
         current_port = self.config.port
 
-        logging.info("Handshake Started...")
-        writer = None
+        logging.info(f"Handshake with master: {master_host}:{master_port}")
         try:
             print(f"Connecting to {master_host}:{master_port}")
-            reader, writer = await asyncio.open_connection(
+            self.reader, self.writer = await asyncio.open_connection(
                 master_host, int(master_port)
             )
 
             # STEP - 1
             cmd = ["PING"]
-            writer.write(self.parser.encoder(cmd))
-            await writer.drain()
-            response = await reader.read(1024)
+            self.writer.write(self.parser.encoder(cmd))
+            await self.writer.drain()
+            response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 1 Response : {response.decode('utf-8')}")
 
             # STEP - 2
             cmd = ["REPLCONF", "listening-port", str(current_port)]
-            writer.write(self.parser.encoder(cmd))
-            await writer.drain()
-            response = await reader.read(1024)
+            self.writer.write(self.parser.encoder(cmd))
+            await self.writer.drain()
+            response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 2 Response : {response.decode('utf-8')}")
 
             cmd = ["REPLCONF", "capa", "psync2"]
-            writer.write(self.parser.encoder(cmd))
-            await writer.drain()
-            response = await reader.read(1024)
+            self.writer.write(self.parser.encoder(cmd))
+            await self.writer.drain()
+            response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 2.5 Response : {response.decode('utf-8')}")
 
             # STEP - 3
             cmd = ["PSYNC", "?", "-1"]
-            writer.write(self.parser.encoder(cmd))
-            await writer.drain()
-            response = await reader.read(1024)
+            self.writer.write(self.parser.encoder(cmd))
+            await self.writer.drain()
+            response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 3 Response : {response}")
 
         except Exception as e:
@@ -221,30 +266,25 @@ class Server:
         finally:
             logging.info("Handshake Completed...")
 
-    async def create_slave_connection(self, slave):
-        print("SLAVE : ", slave)
-        try:
-            # Use socket.create_connection to establish a connection
-            slave_socket = socket.create_connection((slave[0], int(slave[1])))
-            reader, writer = await asyncio.open_connection(sock=slave_socket)
-            return reader, writer
-        except Exception as e:
-            print(e)
-            return None, None
-
-    async def propagate_to_slave(self, data):
-        print("Slaves : ", self.slaves)
-        if self.config.replication.role == "master" and self.slaves:
-            for slave in self.slaves:
-                try:
-                    reader, writer = await self.create_slave_connection(slave)
-                    writer.write(data)
-                    r = await reader.read(1024)
-                    print("READ : ", r)
-                    writer.close()
-                except Exception as e:
-                    print(e)
-                    continue
+    async def propagate_to_slave(self, replica: Replica):
+        print(
+            f"Start background task to send write commands to {replica.host}:{replica.port}"
+        )
+        while True:
+            data = await replica.buffer_queue.get()
+            print(f" DATA : {data}")
+            # if self.config.replication.role == "master" and self.slaves:
+            #     for slave in self.slaves:
+            try:
+                replica.writer.write(data)
+                await replica.writer.drain()
+                # reader, writer = await self.create_slave_connection(slave)
+                # writer.write(data)
+                # r = await reader.read(1024)
+                # print("READ : ", r)
+                # writer.close()
+            except Exception as e:
+                print(e)
 
     @staticmethod
     def check_index(keyword, array):

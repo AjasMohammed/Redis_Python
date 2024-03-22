@@ -1,4 +1,15 @@
+import asyncio
 from dataclasses import dataclass, asdict, field
+
+
+@dataclass
+class Replica:
+    host : str
+    port : int
+    reader : asyncio.StreamReader = None
+    writer : asyncio.StreamWriter = None
+    buffer_queue : asyncio.Queue = field(default_factory=asyncio.Queue)
+    is_ready: bool = True
 
 
 @dataclass(kw_only=True)
