@@ -83,7 +83,6 @@ class Server:
                 if not data:
                     break
                 byte_data = self.parser.decoder(data)
-
                 logging.debug(f"bytes data is {byte_data}")
                 print(f"bytes data is {byte_data}")
 
@@ -106,24 +105,24 @@ class Server:
                     )
                     client = None
 
-                if byte_data:
-                    result = await self.handle_command(byte_data)
-                    if isinstance(result, bytes | tuple):
-                        encoded = result
+                result = await self.handle_command(byte_data)
+                if isinstance(result, bytes | tuple):
+                    encoded = result
+                else:
+                    encoded = self.parser.encoder(result)
+                print(f"Encoded : {encoded}")
+                if encoded:
+                    if isinstance(encoded, tuple):
+                        data, rdb = encoded
+                        self.writer.write(data)
+                        await self.writer.drain()
+                        self.writer.write(rdb)
                     else:
-                        encoded = self.parser.encoder(result)
-                    if encoded:
-                        if isinstance(encoded, tuple):
-                            data, rdb = encoded
-                            self.writer.write(data)
-                            await self.writer.drain()
-                            self.writer.write(rdb)
-                        else:
-                            self.writer.write(encoded)
-                    else:
-                        # Send PONG response back to the client
-                        self.writer.write(pong)
-                    await self.writer.drain()
+                        self.writer.write(encoded)
+                else:
+                    # Send PONG response back to the client
+                    self.writer.write(pong)
+                await self.writer.drain()
 
                 if (
                     self.config.replication.role == "master"
@@ -208,7 +207,7 @@ class Server:
                 self.config.replication.psync(), encode=True
             )
             empty_rdb = self.config.replication.empty_rdb()
-            self.writer.write(bytes(response, 'utf-8'))
+            self.writer.write(bytes(response, "utf-8"))
             self.writer.write(empty_rdb)
         else:
             return None
