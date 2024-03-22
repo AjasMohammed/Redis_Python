@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import socket
 from .utilities import (
     RedisProtocolParser,
     Store,
@@ -81,8 +80,12 @@ class Server:
             print(f"Recived data: {data}")
             if not data:
                 break
+            try:
+                byte_data = self.parser.decoder(data)
+            except UnicodeDecodeError:
+                print(self.config.replication.role)
+                continue
 
-            byte_data = self.parser.decoder(data)
             logging.debug(f"bytes data is {byte_data}")
             print(f"bytes data is {byte_data}")
 
