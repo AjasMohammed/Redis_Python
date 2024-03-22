@@ -70,7 +70,7 @@ class Server:
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
-        self.reader, self.writer = reader, writer
+        # self.reader, self.writer = reader, writer
         client = writer.get_extra_info("peername")
         logging.info(f"Peer : {client}")
         pong = b"+PONG\r\n"
@@ -104,7 +104,7 @@ class Server:
                         asyncio.create_task(self.propagate_to_slave(replica))
                     )
                     client = None
-                    
+
                 if byte_data:
                     result = await self.handle_command(byte_data)
                     if isinstance(result, bytes | tuple):
@@ -151,9 +151,13 @@ class Server:
         elif keyword == "ECHO":
             return " ".join(args)
         elif keyword == "SET":
+            print(
+                f"Setting key : {args[0]} with value : {args[1]} From {self.config.host}:{self.config.port}"
+            )
             self.store.set(args[0], args[1], args[2:])
             return "OK"
         elif keyword == "GET":
+            print(f"Getting key : {args[0]} From {self.config.host}:{self.config.port}")
             data = self.store.get(args[0])
             return data
         elif keyword == "CONFIG":
@@ -278,16 +282,9 @@ class Server:
         while True:
             data = await replica.buffer_queue.get()
             print(f" DATA : {data}")
-            # if self.config.replication.role == "master" and self.slaves:
-            #     for slave in self.slaves:
             try:
                 replica.writer.write(data)
                 await replica.writer.drain()
-                # reader, writer = await self.create_slave_connection(slave)
-                # writer.write(data)
-                # r = await reader.read(1024)
-                # print("READ : ", r)
-                # writer.close()
             except Exception as e:
                 print(e)
 
