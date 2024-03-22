@@ -77,7 +77,7 @@ class Server:
         while True:
             try:
                 # Read data from the client
-                data = await self.reader.read(1024)
+                data = await reader.read(1024)
                 logging.debug(f"Recived data: {data}")
                 print(f"Recived data: {data}")
                 if not data:
