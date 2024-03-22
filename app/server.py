@@ -54,7 +54,7 @@ class Server:
         path = os.path.join(self.config.dir, self.config.dbfilename)
         self.config.db_path = path
 
-        self.db.update_store(self.store, path)
+        self.db.update_store(self.store, path=path)
 
         if self.config.replication.role == "slave":
             await self.handle_replication()
@@ -161,7 +161,7 @@ class Server:
             if args[0] == "*":
                 key_value_pair = self.db.key_value_pair
             else:
-                key_value_pair = self.db.database_parser(self.config.db_path)
+                key_value_pair = self.db.database_parser(path = self.config.db_path)
             if key_value_pair:
                 return list(key_value_pair.keys())
             else:
@@ -207,8 +207,9 @@ class Server:
                 self.config.replication.psync(), encode=True
             )
             empty_rdb = self.config.replication.empty_rdb()
-            self.writer.write(bytes(response, "utf-8"))
-            self.writer.write(empty_rdb)
+            # self.writer.write(bytes(response, "utf-8"))
+            # self.writer.write(empty_rdb)
+            return (response.encode("utf-8"), empty_rdb)
         else:
             return None
 

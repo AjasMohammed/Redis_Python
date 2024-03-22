@@ -47,11 +47,14 @@ class DatabaseParser:
 
         return (string, current_index)
 
-    def database_parser(self, path: str):
+    def database_parser(self, path: str = None, rdb_data: bytes = None):
         try:
-            with open(path, "rb") as file:
-                data = file.read()
-                # print(f"DATA: {data}")
+            if not path:
+                data = rdb_data
+            else:
+                with open(path, "rb") as file:
+                    data = file.read()
+                    # print(f"DATA: {data}")
         except Exception as e:
             logging.error(e)
             return None

@@ -65,7 +65,6 @@ class ServerConfiguration:
 
 
 if __name__ == "__main__":
-    config = ServerConfiguration()
-    print(config.get_config("port"))
-    config.set_config("port", 8000)
-    print(config.get_config("port"))
+    rep = Replication()
+    rdb = rep.empty_rdb()
+    print('RDB: ', rdb)
