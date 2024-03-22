@@ -214,13 +214,12 @@ class Server:
 
     async def listen_master(self):
         print("Listening Master")
+
         try:
-            while True:
-                try:
-                    await self.handle_client(self.reader, self.writer)
-                except ConnectionResetError:
-                    print("Connection err")
-                    return
+            await self.handle_client(self.reader, self.writer)
+        except ConnectionResetError:
+            print("Connection err")
+            return
         except asyncio.CancelledError:
             self.writer.close()
             await self.writer.wait_closed()
