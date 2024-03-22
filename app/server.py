@@ -114,15 +114,15 @@ class Server:
                 if encoded:
                     if isinstance(encoded, tuple):
                         data, rdb = encoded
-                        self.writer.write(data)
-                        await self.writer.drain()
-                        self.writer.write(rdb)
+                        writer.write(data)
+                        await writer.drain()
+                        writer.write(rdb)
                     else:
-                        self.writer.write(encoded)
+                        writer.write(encoded)
                 else:
                     # Send PONG response back to the client
-                    self.writer.write(pong)
-                await self.writer.drain()
+                    writer.write(pong)
+                await writer.drain()
 
                 if (
                     self.config.replication.role == "master"
@@ -139,7 +139,7 @@ class Server:
             except UnicodeDecodeError:
                 print(self.config.replication.role)
 
-        self.writer.close()
+        writer.close()
 
     async def handle_command(self, data):
         logging.debug(f"data is {data}")
