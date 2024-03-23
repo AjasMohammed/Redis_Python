@@ -101,9 +101,6 @@ class Store:
             last = self.last_stream
             while True:
                 x = await self.listen_stream(last, self.last_stream)
-                # print("ID : ", id)
-                # print("Last ID : ", self.last_stream)
-                # print('X :', x)
                 if x:
                     if start == "$":
                         response = await self.xread(streams, last)
