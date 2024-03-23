@@ -221,12 +221,12 @@ class Server:
             # master_info = resp_data.split(b"\r\n", 1).pop(0)
             # master_info = self.parser.decoder(master_info + b"\r\n")
             # print("RESPONSE: ", master_info)
-            index = resp_data.find(b"*")
-            ack_cmd = self.parser.decoder(resp_data[index:])
-            result = await self.handle_command(ack_cmd)
-            encoded_data = self.parser.encoder(result)
-            self.writer.write(encoded_data)
-            await self.writer.drain()
+            # index = resp_data.find(b"*")
+            # ack_cmd = self.parser.decoder(resp_data[index:])
+            # result = await self.handle_command(ack_cmd)
+            # encoded_data = self.parser.encoder(result)
+            # self.writer.write(encoded_data)
+            # await self.writer.drain()
         except Exception as e:
             logging.error(f"Handshake failed: {e}")
 
