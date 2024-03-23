@@ -217,14 +217,18 @@ class Server:
                 print(e)
 
     async def create_replica(self, host, port):
+        print(f"Creating replica {host}:{port}")
         new_replica = Replica(
             host=host,
             port=port,
             buffer_queue=asyncio.Queue(),
         )
-        new_replica.reader, new_replica.writer = await asyncio.open_connection(
-            host, port
-        )
+        print(f"Opening connection to {host}:{port}")
+        try:
+            new_replica.reader, new_replica.writer = await asyncio.open_connection(host, port)
+        except Exception as e:
+            print(e)
+            print('Connection refused, try again...')
         self.slaves.append(new_replica)
         self.slave_tasks.append(
             asyncio.create_task(self.propagate_to_slave(new_replica))
