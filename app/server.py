@@ -117,6 +117,8 @@ class Server:
             # Close the connection
             except UnicodeDecodeError:
                 print(self.config.replication.role)
+            except Exception as e:
+                print(e)
 
         writer.close()
 
