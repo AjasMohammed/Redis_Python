@@ -142,7 +142,7 @@ class Server:
                 # await self.writer.drain()
             # print('Key - Values has been SET')
                 res.append(b'+OK\r\n')
-            return 'OK'
+            return res
         else:
             keyword, *args = data
             keyword = keyword.upper()
