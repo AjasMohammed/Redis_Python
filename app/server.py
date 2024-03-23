@@ -100,45 +100,43 @@ class Server:
                 if byte_data:
                     result = await self.handle_command(byte_data)
 
-                    if (
-                        self.config.replication.role == "slave"
-                        and client[0] == master[0]
-                        and client[1] == master[1]
-                        and 'ACK' not in byte_data
-                    ):
-                        print("FROM MASTER")
+                    # if (
+                    #     self.config.replication.role == "slave"
+                    #     and client[0] == master[0]
+                    #     and client[1] == master[1]
+                    #     and 'ACK' not in byte_data
+                    # ):
+                    #     print("FROM MASTER")
+
+                    if isinstance(result, bytes | tuple):
+                        encoded = result
+                    else:
+                        encoded = self.parser.encoder(result)
+                    print(f"Encoded : {encoded}")
+                    if encoded:
+                        if isinstance(encoded, tuple):
+                            for item in encoded:
+                                # data, rdb = encoded
+                                writer.write(item)
+                                await writer.drain()
+                                # writer.write(rdb)
+                        elif encoded == True:
+                            print("Sending PONG response back to the client")
+                        else:
+                            writer.write(encoded)
 
                     else:
-                        if isinstance(result, bytes | tuple):
-                            encoded = result
-                        else:
-                            encoded = self.parser.encoder(result)
-                        print(f"Encoded : {encoded}")
-                        if encoded:
-                            if isinstance(encoded, tuple):
-                                for item in encoded:
-                                    # data, rdb = encoded
-                                    writer.write(item)
-                                    await writer.drain()
-                                    # writer.write(rdb)
-                            elif encoded == True:
-                                print("Sending PONG response back to the client")
-                            else:
-                                writer.write(encoded)
-
-                        else:
-                            # Send PONG response back to the client
-                            writer.write(pong)
-                        await writer.drain()
-                        print(f"Is writable? : {self.is_writable(byte_data)}")
-                        if (
-                            self.config.replication.role == "master"
-                            and self.is_writable(byte_data)
-                        ):
-                            print("propagating to slave")
-                            for slave in self.slaves:
-                                # print(f"Saving data to queue : {slave}")
-                                await slave.buffer_queue.put(data)
+                        # Send PONG response back to the client
+                        writer.write(pong)
+                    await writer.drain()
+                    print(f"Is writable? : {self.is_writable(byte_data)}")
+                    if self.config.replication.role == "master" and self.is_writable(
+                        byte_data
+                    ):
+                        print("propagating to slave")
+                        for slave in self.slaves:
+                            # print(f"Saving data to queue : {slave}")
+                            await slave.buffer_queue.put(data)
 
             # Close the connection
             except UnicodeDecodeError:
@@ -224,7 +222,6 @@ class Server:
 
         finally:
             logging.info("Handshake Completed...")
-
 
     async def propagate_to_slave(self, replica: Replica):
         print(
