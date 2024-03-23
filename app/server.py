@@ -44,9 +44,12 @@ class Server:
         self.cmd = CommandHandler(self.store, self.db, self.config)
 
         if self.config.replication.role == "slave":
-            await self.handle_replication()
-            await self.listen_master()
-
+            try:
+                await self.handle_replication()
+                await self.listen_master()
+            except Exception as e:
+                print(e)
+                
         # Serve clients indefinitely
         async with server:
             print("Start serving forever")
