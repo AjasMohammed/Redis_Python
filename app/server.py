@@ -156,8 +156,9 @@ class Server:
                 keyword = keyword.upper()
                 await self.cmd.call_cmd(keyword, args)
                 self.writer.write(b'+OK\r\n')
+                self.writer.drain()
             # print('Key - Values has been SET')
-            # return tuple(res)
+            # return 'OK'
         else:
             keyword, *args = data
             keyword = keyword.upper()
