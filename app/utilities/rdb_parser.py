@@ -52,6 +52,7 @@ class DatabaseParser:
             if not path:
                 data = rdb_data
             else:
+                print('path :', path)
                 with open(path, "rb") as file:
                     data = file.read()
                     # print(f"DATA: {data}")
@@ -100,6 +101,7 @@ class DatabaseParser:
                 value, current_index = self.parse_rdb_string(data, current_index)
 
                 if expire_time and expire_time < time.time():
+                    print('EXPIRED')
                     pass
                 else:
 
@@ -117,4 +119,6 @@ class DatabaseParser:
     def update_store(self, store: Store, path: str):
         self.database_parser(path)
         store.store.update(self.key_value_pair)
+        print(self.key_value_pair)
+        print('UPDTING STORE....')
         return True
