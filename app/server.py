@@ -56,6 +56,11 @@ class Server:
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
+        if self.config.replication.role == "slave":
+            master = (
+                self.config.replication.master_host,
+                int(self.config.replication.master_port),
+            )
         client = writer.get_extra_info("peername")
         checkclient = writer.get_extra_info("peername")
         logging.info(f"Peer : {client}")
@@ -72,8 +77,9 @@ class Server:
                 logging.debug(f"bytes data is {byte_data}")
                 print(f"bytes data is {byte_data}")
 
-                if (byte_data and
-                    isinstance(byte_data[0], str)
+                if (
+                    byte_data
+                    and isinstance(byte_data[0], str)
                     and "replconf" == byte_data[0].lower()
                     and client
                     and byte_data[1] == "listening-port"
@@ -89,40 +95,49 @@ class Server:
                     self.slave_tasks.append(
                         asyncio.create_task(self.propagate_to_slave(replica))
                     )
-                    client = None
 
                 if byte_data:
                     result = await self.handle_command(byte_data)
-                    if isinstance(result, bytes | tuple):
-                        encoded = result
-                    else:
-                        encoded = self.parser.encoder(result)
-                    print(f"Encoded : {encoded}")
-                    if encoded:
-                        if isinstance(encoded, tuple):
-                            for item in encoded:
-                                # data, rdb = encoded
-                                writer.write(item)
-                                await writer.drain()
-                                # writer.write(rdb)
-                        elif encoded == True:
-                            print("Sending PONG response back to the client")
-                        else:
-                            writer.write(encoded)
-                            
-                    else:
-                        # Send PONG response back to the client
-                        writer.write(pong)
-                    await writer.drain()
-                    print(f"Is writable? : {self.is_writable(byte_data)}")
+
                     if (
-                        self.config.replication.role == "master"
-                        and self.is_writable(byte_data)
+                        self.config.replication.role == "slave"
+                        and client[0] == master[0]
+                        and client[1] == master[1]
+                        and 'ACK' not in byte_data
                     ):
-                        print("propagating to slave")
-                        for slave in self.slaves:
-                            # print(f"Saving data to queue : {slave}")
-                            await slave.buffer_queue.put(data)
+                        print("FROM MASTER")
+
+                    else:
+                        if isinstance(result, bytes | tuple):
+                            encoded = result
+                        else:
+                            encoded = self.parser.encoder(result)
+                        print(f"Encoded : {encoded}")
+                        if encoded:
+                            if isinstance(encoded, tuple):
+                                for item in encoded:
+                                    # data, rdb = encoded
+                                    writer.write(item)
+                                    await writer.drain()
+                                    # writer.write(rdb)
+                            elif encoded == True:
+                                print("Sending PONG response back to the client")
+                            else:
+                                writer.write(encoded)
+
+                        else:
+                            # Send PONG response back to the client
+                            writer.write(pong)
+                        await writer.drain()
+                        print(f"Is writable? : {self.is_writable(byte_data)}")
+                        if (
+                            self.config.replication.role == "master"
+                            and self.is_writable(byte_data)
+                        ):
+                            print("propagating to slave")
+                            for slave in self.slaves:
+                                # print(f"Saving data to queue : {slave}")
+                                await slave.buffer_queue.put(data)
 
             # Close the connection
             except UnicodeDecodeError:
@@ -140,8 +155,8 @@ class Server:
                 await self.cmd.call_cmd(keyword, args)
                 # self.writer.write(b"+OK\r\n")
                 # await self.writer.drain()
-            # print('Key - Values has been SET')
-                res.append(b'+OK\r\n')
+                # print('Key - Values has been SET')
+                res.append(b"+OK\r\n")
             return res
         else:
             keyword, *args = data
@@ -208,6 +223,7 @@ class Server:
 
         finally:
             logging.info("Handshake Completed...")
+
 
     async def propagate_to_slave(self, replica: Replica):
         print(

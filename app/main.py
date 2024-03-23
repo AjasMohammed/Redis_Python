@@ -37,7 +37,10 @@ async def main():
     )
     if args.replicaof:
         config.replication.role = "slave"
-        config.replication.master_host = args.replicaof[0]
+        host = args.replicaof[0]
+        if host == "localhost":
+            host = "127.0.0.1"
+        config.replication.master_host = host
         config.replication.master_port = args.replicaof[1]
 
     # Start the server
