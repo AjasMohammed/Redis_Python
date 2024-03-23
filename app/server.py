@@ -152,6 +152,7 @@ class Server:
                 keyword, *args = cmd
                 keyword = keyword.upper()
                 await self.cmd.call_cmd(keyword, args)
+            print('Key - Values has been SET')
             return 'OK'
         else:
             keyword, *args = data

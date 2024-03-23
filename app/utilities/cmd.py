@@ -1,4 +1,9 @@
-from app.utilities import DatabaseParser, Store, ServerConfiguration, RedisProtocolParser
+from app.utilities import (
+    DatabaseParser,
+    Store,
+    ServerConfiguration,
+    RedisProtocolParser,
+)
 
 
 class CommandHandler:
@@ -29,15 +34,11 @@ class CommandHandler:
         return " ".join(args)
 
     async def _set_data(self, args):
-        if isinstance(args[0], list):
-            while args:
-                self._set_data(args.pop(0))
-        else:
-            key = args[0]
-            value = args[1]
-            args = args[2:]
-            self.store.set(key, value, args)
-            print(f"Setting key : {key} with value : {value}")
+        key = args[0]
+        value = args[1]
+        args = args[2:]
+        self.store.set(key, value, args)
+        print(f"Setting key : {key} with value : {value}")
         return "OK"
 
     async def _get_data(self, args):
@@ -73,7 +74,7 @@ class CommandHandler:
         return response
 
     async def _xread(self, args):
-        print('XREAD')
+        print("XREAD")
         block_ms = None
         block = self.check_index("BLOCK", args)
         if block != None:
@@ -106,12 +107,12 @@ class CommandHandler:
 
     async def call_cmd(self, cmd: str, args):
         cmd = cmd.upper()
-        print('CMD: ', cmd)
+        print("CMD: ", cmd)
         if cmd in self.cmds:
             return await self.cmds[cmd](args)
         else:
             print("Command not found...")
-    
+
     @staticmethod
     def check_index(keyword, array):
         for i in range(len(array)):

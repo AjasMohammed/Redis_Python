@@ -40,7 +40,6 @@ class RedisProtocolParser:
 
     def decoder(self, data: bytes):
         self.decoded = None
-        print(type(data))
         data = data.decode()
 
         while DELIMETER in data:
@@ -54,7 +53,7 @@ class RedisProtocolParser:
             index = data.find(DELIMETER)
 
             if data.startswith("*"):
-                if data.count("*") > 1 and '*\r' not in data:
+                if data.count("*") > 1 and "*\r" not in data:
                     self.decoded, data = self.array(data)
                 else:
                     self.decoded = []
@@ -69,7 +68,6 @@ class RedisProtocolParser:
             else:
                 break
 
-        print(f"Decoded Data : {self.decoded}")
         return self.decoded
 
     def join_data(self, data):
@@ -135,15 +133,11 @@ class RedisProtocolParser:
             index_1 = 0
             x = 0
             while "*" in data:
-                print("Data 2 : ", data.encode("utf-8"))
                 index_2 = data[index_1 + 1 :].find("*") + 1
                 if index_2 == 0:
                     index_2 = -1
-                print("Index 2 : ", index_2)
-                print("Parsing Data : ", data[index_1:index_2].encode("utf-8"))
                 d = resp.decoder(data[index_1:index_2].encode("utf-8"))
                 new_data.append(d)
-                print(f"New Data : {new_data}")
                 data = data[index_2:]
 
             return new_data, data
