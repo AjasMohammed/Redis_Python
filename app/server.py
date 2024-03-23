@@ -217,17 +217,16 @@ class Server:
             logging.info(f"Handshake STEP - 3 Response : {response}")
             print(f"Handshake STEP - 3 Response : {response}")
 
-            master_info = response.split(b"\r\n", 1).pop(0)
+            resp_data = response[:]
+            master_info = resp_data.split(b"\r\n", 1).pop(0)
             master_info = self.parser.decoder(master_info + b"\r\n")
-            print('RESPONSE: ', master_info)
-
-            print(f"Response : {response}")
+            print("RESPONSE: ", master_info)
             index = response.find(b"*")
-            print(f"Index : {index}")
-            ack_cmd = self.parser.decoder(response[index:])
+            ack_cmd = self.parser.decoder(resp_data[index:])
             result = await self.handle_command(ack_cmd)
             encoded_data = self.parser.encoder(result)
             self.writer.write(encoded_data)
+
         except Exception as e:
             logging.error(f"Handshake failed: {e}")
 
