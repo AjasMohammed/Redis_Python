@@ -54,7 +54,7 @@ class RedisProtocolParser:
             index = data.find(DELIMETER)
 
             if data.startswith("*"):
-                if data.count("*") > 1:
+                if data.count("*") > 1 and '*\r' not in data:
                     self.decoded, data = self.array(data)
                 else:
                     self.decoded = []
