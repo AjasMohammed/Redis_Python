@@ -118,10 +118,12 @@ class Server:
                     print(f"Encoded : {encoded}")
                     if encoded:
                         if isinstance(encoded, tuple):
-                            data, rdb = encoded
-                            writer.write(data)
-                            await writer.drain()
-                            writer.write(rdb)
+                            for item in encoded:
+                            # data, rdb = encoded
+                                print('Sending data to client')
+                                writer.write(item)
+                                await writer.drain()
+                                # writer.write(rdb)
                         else:
                             writer.write(encoded)
                     else:
@@ -148,12 +150,14 @@ class Server:
     async def handle_command(self, data):
         logging.debug(f"data is {data}")
         if isinstance(data[0], list):
+            res = []
             for cmd in data:
                 keyword, *args = cmd
                 keyword = keyword.upper()
                 await self.cmd.call_cmd(keyword, args)
+                res.append(b'+OK\r\n')
             print('Key - Values has been SET')
-            return 'OK'
+            return tuple(res)
         else:
             keyword, *args = data
             keyword = keyword.upper()
