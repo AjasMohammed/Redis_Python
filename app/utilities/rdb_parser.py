@@ -58,6 +58,7 @@ class DatabaseParser:
                     # print(f"DATA: {data}")
         except Exception as e:
             logging.error(e)
+            print(e)
             return None
 
         magic, data = data[:5], data[5:]
