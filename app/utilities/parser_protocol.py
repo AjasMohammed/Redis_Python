@@ -40,7 +40,10 @@ class RedisProtocolParser:
 
     def decoder(self, data: bytes):
         self.decoded = None
-        data = data.decode()
+        try :
+            data = data.decode()
+        except UnicodeDecodeError:
+            print('Unicode Error')
 
         while DELIMETER in data:
             if data.startswith("+"):
