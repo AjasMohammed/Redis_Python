@@ -22,13 +22,13 @@ class CommandHandler:
             "PSYNC": self._psync,
         }
 
-    def _ping(self, args):
+    async def _ping(self, args):
         return "PONG"
 
-    def _echo(self, args):
+    async def _echo(self, args):
         return " ".join(args)
 
-    def _set_data(self, args):
+    async def _set_data(self, args):
         if isinstance(args[0], list):
             while args:
                 self._set_data(args.pop(0))
@@ -40,15 +40,15 @@ class CommandHandler:
             print(f"Setting key : {key} with value : {value}")
         return "OK"
 
-    def _get_data(self, args):
+    async def _get_data(self, args):
         key = args[0]
         value = self.store.get(key)
         return value
 
-    def _config(self, args):
+    async def _config(self, args):
         return self.config.handle_config(args)
 
-    def _keys(self, args):
+    async def _keys(self, args):
         if args[0] == "*":
             key_value_pair = self.db.key_value_pair
         else:
@@ -58,21 +58,22 @@ class CommandHandler:
         else:
             return None
 
-    def type_(self, args):
+    async def type_(self, args):
         return self.store.type_check(args[0])
 
-    def _xadd(self, args):
+    async def _xadd(self, args):
         key = args.pop(0)
         id = args.pop(0)
-        self.parseronse = self.store.xadd(key, id, args)
-        return self.parseronse
+        response = self.store.xadd(key, id, args)
+        return response
 
-    def _xrange(self, args):
+    async def _xrange(self, args):
         key = args.pop(0)
-        self.parseronse = self.store.xrange(key, args)
-        return self.parseronse
+        response = self.store.xrange(key, args)
+        return response
 
-    def _xread(self, args):
+    async def _xread(self, args):
+        print('XREAD')
         block_ms = None
         block = self.check_index("BLOCK", args)
         if block != None:
@@ -85,28 +86,29 @@ class CommandHandler:
             )
         )
         id = args[len(streams) + 1]
-        self.parseronse = self.store.xread(streams, id, block_ms)
-        return self.parseronse
+        response = await self.store.xread(streams, id, block_ms)
+        return response
 
-    def _info(self, args):
+    async def _info(self, args):
         if args[0].lower() == "replication":
             rep = self.config.replication.view_info()
             return rep
 
-    def _replconf(self, args):
+    async def _replconf(self, args):
         return "OK"
 
-    def _psync(self, args):
+    async def _psync(self, args):
         response = RedisProtocolParser.simple_string(
             self.config.replication.psync(), encode=True
         )
         empty_rdb = self.config.replication.empty_rdb()
         return (response.encode("utf-8"), empty_rdb)
 
-    def call_cmd(self, cmd: str, args):
+    async def call_cmd(self, cmd: str, args):
         cmd = cmd.upper()
+        print('CMD: ', cmd)
         if cmd in self.cmds:
-            return self.cmds[cmd](args)
+            return await self.cmds[cmd](args)
         else:
             print("Command not found...")
     

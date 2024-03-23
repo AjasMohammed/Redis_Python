@@ -151,12 +151,12 @@ class Server:
             for cmd in data:
                 keyword, *args = cmd
                 keyword = keyword.upper()
-                self.cmd.call_cmd(keyword, args)
+                await self.cmd.call_cmd(keyword, args)
             return 'OK'
         else:
             keyword, *args = data
             keyword = keyword.upper()
-            return self.cmd.call_cmd(keyword, args)
+            return await self.cmd.call_cmd(keyword, args)
 
     async def listen_master(self):
         print("Listening Master")

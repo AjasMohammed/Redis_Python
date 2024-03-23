@@ -94,6 +94,7 @@ class Store:
         return data
 
     async def xread(self, streams: list, id: str, block: int | None = None):
+        print(self.stream)
         if block != None:
             block_ms = (time.time() * 1000) + block
             start = id
