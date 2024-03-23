@@ -1,7 +1,5 @@
-import logging
-
-
 DELIMETER = "\r\n"
+
 
 class RedisProtocolParser:
     STRING_CONSTANTS = {
@@ -42,8 +40,8 @@ class RedisProtocolParser:
 
     def decoder(self, data: bytes):
         self.decoded = None
+        print(type(data))
         data = data.decode()
-        print(f"Decoding Data : {data}")
 
         while DELIMETER in data:
             if data.startswith("+"):
@@ -56,9 +54,11 @@ class RedisProtocolParser:
             index = data.find(DELIMETER)
 
             if data.startswith("*"):
-                self.decoded = []
-                data = data[index + 2 :]
-                # print('List Data : ',data)
+                if data.count("*") > 1:
+                    self.decoded, data = self.array(data)
+                else:
+                    self.decoded = []
+                    data = data[index + 2 :]
             elif data.startswith("$"):
                 data, keyword = self.bulk_string(data, index)
                 self.join_data(keyword)
@@ -66,6 +66,9 @@ class RedisProtocolParser:
                 num = int(data[1 : index + 2].rstrip(DELIMETER))
                 data = data[index + 2 :]
                 self.join_data(num)
+            else:
+                break
+
         print(f"Decoded Data : {self.decoded}")
         return self.decoded
 
@@ -119,20 +122,39 @@ class RedisProtocolParser:
 
     @staticmethod
     def array(data, encode=False):
+        resp = RedisProtocolParser()
         if encode:
             prefix = "*" + str(len(data)) + DELIMETER
-            resp = RedisProtocolParser()
             mapped_data = map(
                 lambda keyword: resp.encoder(keyword).decode("utf-8"), data
             )
 
             return prefix + "".join(mapped_data)
+        else:
+            new_data = []
+            index_1 = 0
+            x = 0
+            while "*" in data:
+                print("Data 2 : ", data.encode("utf-8"))
+                index_2 = data[index_1 + 1 :].find("*") + 1
+                if index_2 == 0:
+                    index_2 = -1
+                print("Index 2 : ", index_2)
+                print("Parsing Data : ", data[index_1:index_2].encode("utf-8"))
+                d = resp.decoder(data[index_1:index_2].encode("utf-8"))
+                new_data.append(d)
+                print(f"New Data : {new_data}")
+                data = data[index_2:]
+
+            return new_data, data
 
 
 # Usage example
 if __name__ == "__main__":
     parser = RedisProtocolParser()
     decoded_data = parser.decoder(
-        b"*6\r\n$3\r\nSET\r\n$4\r\nname\r\n$9\r\nSpongeBob\r\n$2\r\nPX\r\n$2\r\n10\r\n"
+        "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n".encode(
+            "utf-8"
+        )
     )
-
+    print(decoded_data)

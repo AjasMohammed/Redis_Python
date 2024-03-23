@@ -7,6 +7,7 @@ from .utilities import (
     DatabaseParser,
     Replica,
     ServerConfiguration,
+    CommandHandler,
 )
 
 
@@ -23,6 +24,7 @@ class Server:
         self.store: Store = Store()
         self.db: DatabaseParser = DatabaseParser()
         self.parser: RedisProtocolParser = RedisProtocolParser()
+        self.cmd: CommandHandler
 
         self.slaves: list[Replica] = []
         self.slave_tasks: list[asyncio.Task] = []
@@ -50,11 +52,13 @@ class Server:
         )
         server.sockets[0].setblocking(False)
         logging.info(f"Serving on: {server.sockets[0].getsockname()}")
+
         # set path to the .rdb file in the config
         path = os.path.join(self.config.dir, self.config.dbfilename)
         self.config.db_path = path
-
         self.db.update_store(self.store, path=path)
+
+        self.cmd = CommandHandler(self.store, self.db, self.config)
 
         if self.config.replication.role == "slave":
             await self.handle_replication()
@@ -87,7 +91,7 @@ class Server:
                 print(f"bytes data is {byte_data}")
 
                 if (
-                    byte_data
+                    isinstance(byte_data[0], str)
                     and "replconf" == byte_data[0].lower()
                     and client
                     and byte_data[1] == "listening-port"
@@ -127,7 +131,7 @@ class Server:
 
                     if (
                         self.config.replication.role == "master"
-                        and byte_data
+                        and isinstance(byte_data[0], str)
                         and byte_data[0].upper() in self.writable_cmd
                     ):
                         print("propagating to slave")
@@ -143,77 +147,16 @@ class Server:
 
     async def handle_command(self, data):
         logging.debug(f"data is {data}")
-        keyword, *args = data
-        keyword = keyword.upper()
-        if keyword == "PING":
-            return "PONG"
-        elif keyword == "ECHO":
-            return " ".join(args)
-        elif keyword == "SET":
-            print(
-                f"Setting key : {args[0]} with value : {args[1]} From {self.config.host}:{self.config.port}"
-            )
-            print(f"Current Store: {self.store.store}")
-            self.store.set(args[0], args[1], args[2:])
-            return "OK"
-        elif keyword == "GET":
-            print(f"Getting key : {args[0]} From {self.config.host}:{self.config.port}")
-            print(f"Current Store: {self.store.store}")
-            data = self.store.get(args[0])
-            return data
-        elif keyword == "CONFIG":
-            return self.config.handle_config(args)
-        elif keyword == "KEYS":
-            if args[0] == "*":
-                key_value_pair = self.db.key_value_pair
-            else:
-                key_value_pair = self.db.database_parser(path=self.config.db_path)
-            if key_value_pair:
-                return list(key_value_pair.keys())
-            else:
-                return None
-        elif keyword == "TYPE":
-            value_type = self.store.type_check(args[0])
-            return value_type
-        elif keyword == "XADD":
-            key = args.pop(0)
-            id = args.pop(0)
-            self.parseronse = self.store.xadd(key, id, args)
-            return self.parseronse
-        elif keyword == "XRANGE":
-            key = args.pop(0)
-            self.parseronse = self.store.xrange(key, args)
-            return self.parseronse
-        elif keyword == "XREAD":
-            block_ms = None
-            block = self.check_index("BLOCK", args)
-            if block != None:
-                block_ms = int(args[block + 1])
-                args = args[block + 2 :]
-            streams = list(
-                filter(
-                    lambda x: (x.isalpha() or x.isalnum() or "_" in x)
-                    and not x.isdigit(),
-                    args[1:],
-                )
-            )
-            id = args[len(streams) + 1]
-            self.parseronse = await self.store.xread(streams, id, block_ms)
-            return self.parseronse
-        elif keyword == "INFO":
-            if args[0].lower() == "replication":
-                rep = self.config.replication.view_info()
-                return rep
-        elif keyword == "REPLCONF":
-            return "OK"
-        elif keyword == "PSYNC":
-            response = self.parser.simple_string(
-                self.config.replication.psync(), encode=True
-            )
-            empty_rdb = self.config.replication.empty_rdb()
-            return (response.encode("utf-8"), empty_rdb)
+        if isinstance(data[0], list):
+            for cmd in data:
+                keyword, *args = cmd
+                keyword = keyword.upper()
+                self.cmd.call_cmd(keyword, args)
+            return 'OK'
         else:
-            return None
+            keyword, *args = data
+            keyword = keyword.upper()
+            return self.cmd.call_cmd(keyword, args)
 
     async def listen_master(self):
         print("Listening Master")
