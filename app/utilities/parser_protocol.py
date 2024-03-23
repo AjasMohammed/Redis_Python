@@ -48,7 +48,11 @@ class RedisProtocolParser:
         while DELIMETER in data:
             if data.startswith("+"):
                 data, keyword = self.simple_string(data)
-                self.join_data(keyword)
+                if isinstance(data, list):
+                    data = [keyword, *data]
+                    return data
+                else:
+                    self.join_data(keyword)
 
             elif data.startswith("-"):
                 return self.simple_error(data)
@@ -70,7 +74,6 @@ class RedisProtocolParser:
                 self.join_data(num)
             else:
                 break
-
         return self.decoded
 
     def join_data(self, data):
@@ -83,13 +86,17 @@ class RedisProtocolParser:
                 self.decoded += str(data)
 
     @staticmethod
-    def simple_string(data, encode=False):
+    def simple_string(data: str, encode=False):
         if encode:
             return "+" + data + DELIMETER
         else:
-            keyword = data[1:].rstrip(DELIMETER)
-            data = data[1 + len(keyword) + 2 :]
-            return data, keyword
+            if ' ' not in data:
+                keyword = data[1:].rstrip(DELIMETER)
+                data = data[1 + len(keyword) + 2 :]
+            else:
+                data = data[1:].rstrip(DELIMETER).split(' ')
+                keyword = data[0]
+            return data[1:], keyword
 
     @staticmethod
     def simple_error(data, encode=False):

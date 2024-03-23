@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sys
 from .utilities import (
     RedisProtocolParser,
     Store,
@@ -119,19 +120,15 @@ class Server:
                         if encoded:
                             if isinstance(encoded, tuple):
                                 for item in encoded:
-                                    # data, rdb = encoded
                                     writer.write(item)
                                     await writer.drain()
-                                    # writer.write(rdb)
-                            elif encoded == True:
-                                print("Sending PONG response back to the client")
                             else:
                                 writer.write(encoded)
-
+                                await writer.drain()
                         else:
                             # Send PONG response back to the client
                             writer.write(pong)
-                        await writer.drain()
+                            await writer.drain()
                         print(f"Is writable? : {self.is_writable(byte_data)}")
                         if (
                             self.config.replication.role == "master"
@@ -146,7 +143,7 @@ class Server:
             except Exception as e:
                 print(e)
                 print(self.config.replication.role)
-
+                break
         writer.close()
 
     async def handle_command(self, data):
@@ -205,14 +202,12 @@ class Server:
             await self.writer.drain()
             response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 2 Response : {response.decode('utf-8')}")
-            print(f"Handshake STEP - 2 Response : {response.decode('utf-8')}")
 
             cmd = ["REPLCONF", "capa", "psync2"]
             self.writer.write(self.parser.encoder(cmd))
             await self.writer.drain()
             response = await self.reader.read(1024)
             logging.info(f"Handshake STEP - 2.5 Response : {response.decode('utf-8')}")
-            print(f"Handshake STEP - 2.5 Response : {response.decode('utf-8')}")
 
             # STEP - 3
             cmd = ["PSYNC", "?", "-1"]
@@ -222,6 +217,17 @@ class Server:
             logging.info(f"Handshake STEP - 3 Response : {response}")
             print(f"Handshake STEP - 3 Response : {response}")
 
+            master_info = response.split(b"\r\n", 1).pop(0)
+            master_info = self.parser.decoder(master_info + b"\r\n")
+            print('RESPONSE: ', master_info)
+
+            print(f"Response : {response}")
+            index = response.find(b"*")
+            print(f"Index : {index}")
+            ack_cmd = self.parser.decoder(response[index:])
+            result = await self.handle_command(ack_cmd)
+            encoded_data = self.parser.encoder(result)
+            self.writer.write(encoded_data)
         except Exception as e:
             logging.error(f"Handshake failed: {e}")
 
