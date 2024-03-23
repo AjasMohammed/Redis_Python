@@ -74,7 +74,7 @@ class Server:
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
-        # self.reader, self.writer = reader, writer
+        self.reader, self.writer = reader, writer
         client = writer.get_extra_info("peername")
         logging.info(f"Peer : {client}")
         pong = b"+PONG\r\n"
@@ -155,9 +155,9 @@ class Server:
                 keyword, *args = cmd
                 keyword = keyword.upper()
                 await self.cmd.call_cmd(keyword, args)
-                res.append(b'+OK\r\n')
-            print('Key - Values has been SET')
-            return tuple(res)
+                self.writer.write(b'+OK\r\n')
+            # print('Key - Values has been SET')
+            # return tuple(res)
         else:
             keyword, *args = data
             keyword = keyword.upper()
