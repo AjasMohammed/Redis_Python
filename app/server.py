@@ -28,23 +28,6 @@ class Server:
 
         self.slaves: list[Replica] = []
         self.slave_tasks: list[asyncio.Task] = []
-        self.writable_cmd = [
-            "SET",
-            "GETSET",
-            "DEL",
-            "INCR",
-            "DECR",
-            "INCRBY",
-            "DECRBY",
-            "APPEND",
-            "SETBIT",
-            "SETEX",
-            "MSET",
-            "MSETNX",
-            "HSET",
-            "HSETNX",
-            "HMSET",
-        ]
 
     async def start_server(self):
         server = await asyncio.start_server(
@@ -70,12 +53,12 @@ class Server:
             await server.serve_forever()
 
     # Define coroutine to handle client connections
-
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         self.reader, self.writer = reader, writer
         client = writer.get_extra_info("peername")
+        checkclient = writer.get_extra_info("peername")
         logging.info(f"Peer : {client}")
         pong = b"+PONG\r\n"
         while True:
@@ -83,14 +66,14 @@ class Server:
                 # Read data from the client
                 data = await reader.read(1024)
                 logging.debug(f"Recived data: {data}")
-                print(f"Recived data: {data}")
+                print(f"Recived data: {data} From {checkclient}")
                 if not data:
                     break
                 byte_data = self.parser.decoder(data)
                 logging.debug(f"bytes data is {byte_data}")
                 print(f"bytes data is {byte_data}")
 
-                if (
+                if (byte_data and
                     isinstance(byte_data[0], str)
                     and "replconf" == byte_data[0].lower()
                     and client
@@ -119,22 +102,22 @@ class Server:
                     if encoded:
                         if isinstance(encoded, tuple):
                             for item in encoded:
-                            # data, rdb = encoded
-                                print('Sending data to client')
+                                # data, rdb = encoded
                                 writer.write(item)
                                 await writer.drain()
                                 # writer.write(rdb)
+                        elif encoded == True:
+                            print("Sending PONG response back to the client")
                         else:
                             writer.write(encoded)
+                            
                     else:
                         # Send PONG response back to the client
                         writer.write(pong)
                     await writer.drain()
-
                     if (
                         self.config.replication.role == "master"
-                        and isinstance(byte_data[0], str)
-                        and byte_data[0].upper() in self.writable_cmd
+                        and self.is_writable(byte_data)
                     ):
                         print("propagating to slave")
                         for slave in self.slaves:
@@ -155,10 +138,11 @@ class Server:
                 keyword, *args = cmd
                 keyword = keyword.upper()
                 await self.cmd.call_cmd(keyword, args)
-                self.writer.write(b'+OK\r\n')
-                await self.writer.drain()
+                # self.writer.write(b"+OK\r\n")
+                # await self.writer.drain()
             # print('Key - Values has been SET')
-            # return 'OK'
+                res.append(b'+OK\r\n')
+            return 'OK'
         else:
             keyword, *args = data
             keyword = keyword.upper()
@@ -238,4 +222,29 @@ class Server:
             except Exception as e:
                 print(e)
 
-
+    @staticmethod
+    def is_writable(cmd):
+        writable_cmd = [
+            "SET",
+            "GETSET",
+            "DEL",
+            "INCR",
+            "DECR",
+            "INCRBY",
+            "DECRBY",
+            "APPEND",
+            "SETBIT",
+            "SETEX",
+            "MSET",
+            "MSETNX",
+            "HSET",
+            "HSETNX",
+            "HMSET",
+        ]
+        try:
+            res = cmd[0].upper() in writable_cmd
+        except AttributeError:
+            res = []
+            for i in cmd:
+                res.append(i[0].upper() in writable_cmd)
+            return all(res)
