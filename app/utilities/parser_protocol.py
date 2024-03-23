@@ -66,7 +66,7 @@ class RedisProtocolParser:
                 num = int(data[1 : index + 2].rstrip(DELIMETER))
                 data = data[index + 2 :]
                 self.join_data(num)
-            print(f'Processing: {data}')
+        print(f"Decoded Data : {self.decoded}")
         return self.decoded
 
     def join_data(self, data):
