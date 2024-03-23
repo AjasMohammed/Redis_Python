@@ -44,12 +44,9 @@ class Server:
         self.cmd = CommandHandler(self.store, self.db, self.config)
 
         if self.config.replication.role == "slave":
-            try:
-                await self.handle_replication()
-                await self.listen_master()
-            except Exception as e:
-                print(e)
-                
+            await self.handle_replication()
+            await self.listen_master()
+
         # Serve clients indefinitely
         async with server:
             print("Start serving forever")
@@ -70,6 +67,7 @@ class Server:
         pong = b"+PONG\r\n"
         while True:
             try:
+                print("Waiting for data")
                 # Read data from the client
                 data = await reader.read(1024)
                 logging.debug(f"Recived data: {data}")
