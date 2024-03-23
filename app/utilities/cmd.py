@@ -109,6 +109,13 @@ class CommandHandler:
             return self.cmds[cmd](args)
         else:
             print("Command not found...")
+    
+    @staticmethod
+    def check_index(keyword, array):
+        for i in range(len(array)):
+            if keyword.lower() == array[i].lower():
+                return i
+        return None
 
 
 # Usage example

@@ -232,9 +232,4 @@ class Server:
             except Exception as e:
                 print(e)
 
-    @staticmethod
-    def check_index(keyword, array):
-        for i in range(len(array)):
-            if keyword.lower() == array[i].lower():
-                return i
-        return None
+
