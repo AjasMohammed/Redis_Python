@@ -72,14 +72,23 @@ class Server:
                 logging.debug(f"bytes data is {byte_data}")
                 print(f"bytes data is {byte_data}")
 
-                if (
-                    byte_data
-                    and isinstance(byte_data[0], str)
+                if (byte_data and
+                    isinstance(byte_data[0], str)
                     and "replconf" == byte_data[0].lower()
                     and client
                     and byte_data[1] == "listening-port"
                 ):
-                    await self.create_replica(client[0], int(byte_data[2]))
+                    replica = Replica(
+                        host=client[0],
+                        port=client[1],
+                        reader=reader,
+                        writer=writer,
+                        buffer_queue=asyncio.Queue(),
+                    )
+                    self.slaves.append(replica)
+                    self.slave_tasks.append(
+                        asyncio.create_task(self.propagate_to_slave(replica))
+                    )
                     client = None
 
                 if byte_data:
@@ -100,14 +109,15 @@ class Server:
                             print("Sending PONG response back to the client")
                         else:
                             writer.write(encoded)
-
+                            
                     else:
                         # Send PONG response back to the client
                         writer.write(pong)
                     await writer.drain()
                     print(f"Is writable? : {self.is_writable(byte_data)}")
-                    if self.config.replication.role == "master" and self.is_writable(
-                        byte_data
+                    if (
+                        self.config.replication.role == "master"
+                        and self.is_writable(byte_data)
                     ):
                         print("propagating to slave")
                         for slave in self.slaves:
@@ -117,8 +127,6 @@ class Server:
             # Close the connection
             except UnicodeDecodeError:
                 print(self.config.replication.role)
-            except Exception as e:
-                print(e)
 
         writer.close()
 
@@ -132,8 +140,8 @@ class Server:
                 await self.cmd.call_cmd(keyword, args)
                 # self.writer.write(b"+OK\r\n")
                 # await self.writer.drain()
-                # print('Key - Values has been SET')
-                res.append(b"+OK\r\n")
+            # print('Key - Values has been SET')
+                res.append(b'+OK\r\n')
             return res
         else:
             keyword, *args = data
@@ -211,28 +219,8 @@ class Server:
             try:
                 replica.writer.write(data)
                 await replica.writer.drain()
-                r = await replica.reader.read(1024)
-                print("Response: ", r.decode("utf-8"))
             except Exception as e:
                 print(e)
-
-    async def create_replica(self, host, port):
-        print(f"Creating replica {host}:{port}")
-        new_replica = Replica(
-            host=host,
-            port=port,
-            buffer_queue=asyncio.Queue(),
-        )
-        print(f"Opening connection to {host}:{port}")
-        try:
-            new_replica.reader, new_replica.writer = await asyncio.open_connection(host, port)
-        except Exception as e:
-            print(e)
-            print('Connection refused, try again...')
-        self.slaves.append(new_replica)
-        self.slave_tasks.append(
-            asyncio.create_task(self.propagate_to_slave(new_replica))
-        )
 
     @staticmethod
     def is_writable(cmd):
