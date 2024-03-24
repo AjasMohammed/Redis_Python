@@ -101,9 +101,9 @@ class CommandHandler:
             pass
         elif args[0].lower() == "getack":
             offset = self.config.replication.command_offset
-            print('Commande Offset : ', offset)
+            print("Commande Offset : ", offset)
             self.config.replication.command_offset += 37
-            return ['REPLCONF', 'ACK', str(offset)]
+            return ["REPLCONF", "ACK", str(offset)]
         return "OK"
 
     async def _psync(self, args):
@@ -111,7 +111,7 @@ class CommandHandler:
             self.config.replication.psync(), encode=True
         )
         empty_rdb = self.config.replication.empty_rdb()
-        ack = b'*3\r\n$8\r\nreplconf\r\n$6\r\ngetack\r\n$1\r\n*\r\n'
+        ack = b"*3\r\n$8\r\nreplconf\r\n$6\r\ngetack\r\n$1\r\n*\r\n"
         return (response.encode("utf-8"), empty_rdb)
 
     async def _wait(self, args):

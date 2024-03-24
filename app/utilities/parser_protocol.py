@@ -28,7 +28,7 @@ class RedisProtocolParser:
                     self.encoded = self.simple_string(data, encode=True)
                 else:
                     self.encoded = self.bulk_string(data, encode=True)
-            
+
             elif isinstance(data, int):
                 self.encoded = self.integer(data, encode=True)
 
@@ -45,7 +45,7 @@ class RedisProtocolParser:
             print("Unicode Error")
             return None
         except Exception as e:
-            print('Error in encoder')
+            print("Error in encoder")
             print(e)
         return bytes(self.encoded, "utf-8")
 
