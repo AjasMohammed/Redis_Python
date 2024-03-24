@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-import sys
+import traceback
 from .utilities import (
     RedisProtocolParser,
     Store,
@@ -287,7 +287,8 @@ class Server:
                     await writer.drain()
         except Exception as e:
             print("Error in should_respond")
-            print(e.with_traceback())
+            print(str(e))
+            print(traceback.print_tb(e.__traceback__))
 
     @staticmethod
     def is_writable(cmd):
