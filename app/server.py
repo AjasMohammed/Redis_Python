@@ -153,6 +153,7 @@ class Server:
 
     async def handle_command(self, data) -> list | tuple:
         logging.debug(f"data is {data}")
+        print(f"data is {data}")
         if isinstance(data[0], list) and len(data) > 1:
             res = []
             for cmd in data:
