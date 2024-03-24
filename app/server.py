@@ -168,6 +168,7 @@ class Server:
                 ):
                     self.calculate_bytes(self.parser.encoder(cmd))
                 res.append(byte_data)
+            print("RES: ", res)
             return tuple(res)
         else:
             if isinstance(data[0], list):
