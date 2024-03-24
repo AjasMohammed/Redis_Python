@@ -118,9 +118,9 @@ class CommandHandler:
         numreplicas = int(args[0])
         timeout = int(args[1])
         total_replicas = len(self.config.replication.slaves)
-        if total_replicas < numreplicas:
-            return total_replicas
-        return numreplicas
+        # if total_replicas < numreplicas:
+        #     return total_replicas
+        return total_replicas
 
     async def call_cmd(self, cmd: str, args):
         cmd = cmd.upper()
