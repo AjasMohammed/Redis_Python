@@ -160,7 +160,7 @@ class Server:
                 keyword = keyword.upper()
                 response = await self.cmd.call_cmd(keyword, args)
                 byte_data = self.parser.encoder(response)
-                if 'ACK' not in response:
+                if response and 'ACK' not in response:
                     self.calculate_bytes(self.parser.encoder(cmd))
                 res.append(byte_data)
             return tuple(res)
@@ -170,7 +170,7 @@ class Server:
             keyword, *args = data
             keyword = keyword.upper()
             response = await self.cmd.call_cmd(keyword, args)
-            if 'ACK' not in response:
+            if response and 'ACK' not in response:
                     self.calculate_bytes(self.parser.encoder(data))
             return response
 
