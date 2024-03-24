@@ -18,24 +18,32 @@ class RedisProtocolParser:
         self.encoded = None
 
     def encoder(self, data: list | str | dict) -> bytes | None:
-        self.encoded = None
-        if isinstance(data, str):
-            # if data.isdigit():
-            #     self.encoded = self.integer(data, encode=True)
-            # else:
-            if data.lower() in self.STRING_CONSTANTS:
-                self.encoded = self.simple_string(data, encode=True)
+        try:
+            self.encoded = None
+            if isinstance(data, str):
+                # if data.isdigit():
+                #     self.encoded = self.integer(data, encode=True)
+                # else:
+                if data.lower() in self.STRING_CONSTANTS:
+                    self.encoded = self.simple_string(data, encode=True)
+                else:
+                    self.encoded = self.bulk_string(data, encode=True)
+
+            elif isinstance(data, list):
+                self.encoded = self.array(data, encode=True)
+
+            elif isinstance(data, dict):
+                self.encoded = self.simple_error(data["error"], encode=True)
+
             else:
-                self.encoded = self.bulk_string(data, encode=True)
+                self.encoded = "$-1\r\n"  # Null Bulk String
 
-        elif isinstance(data, list):
-            self.encoded = self.array(data, encode=True)
-
-        elif isinstance(data, dict):
-            self.encoded = self.simple_error(data["error"], encode=True)
-
-        else:
-            self.encoded = "$-1\r\n"  # Null Bulk String
+        except UnicodeDecodeError:
+            print("Unicode Error")
+            return None
+        except Exception as e:
+            print('Error in encoder')
+            print(e)
         return bytes(self.encoded, "utf-8")
 
     def decoder(self, data: bytes):
