@@ -76,7 +76,7 @@ class Server:
                 if not data:
                     break
                 print("Decoding...")
-                print('Data : ', data)
+                print("Data : ", data)
                 byte_data = self.parser.decoder(data)
 
                 logging.debug(f"bytes data is {byte_data}")
@@ -160,7 +160,11 @@ class Server:
                 keyword = keyword.upper()
                 response = await self.cmd.call_cmd(keyword, args)
                 byte_data = self.parser.encoder(response)
-                if response and 'ACK' not in response:
+                if (
+                    self.config.replication.role == "slave"
+                    and response
+                    and "ACK" not in response
+                ):
                     self.calculate_bytes(self.parser.encoder(cmd))
                 res.append(byte_data)
             return tuple(res)
@@ -170,8 +174,12 @@ class Server:
             keyword, *args = data
             keyword = keyword.upper()
             response = await self.cmd.call_cmd(keyword, args)
-            if response and 'ACK' not in response:
-                    self.calculate_bytes(self.parser.encoder(data))
+            if (
+                self.config.replication.role == "slave"
+                and response
+                and "ACK" not in response
+            ):
+                self.calculate_bytes(self.parser.encoder(data))
             return response
 
     async def listen_master(self) -> None:
@@ -257,9 +265,10 @@ class Server:
                 print(e)
 
     def calculate_bytes(self, data) -> int:
+        print(f"Current offset : {self.config.replication.command_offset}")
         self.config.replication.command_offset += len(data)
-        
-    
+        print(f"New offset : {self.config.replication.command_offset}")
+
     @staticmethod
     def is_writable(cmd):
         writable_cmd = [
@@ -287,4 +296,3 @@ class Server:
             for i in cmd:
                 res.append(i[0].upper() in writable_cmd)
             return all(res)
-

@@ -44,6 +44,7 @@ class RedisProtocolParser:
             data = data.decode()
         except UnicodeDecodeError:
             print("Unicode Error")
+            return None
 
         while DELIMETER in data:
             try:
