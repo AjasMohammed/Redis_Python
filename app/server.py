@@ -276,13 +276,13 @@ class Server:
                 for cmd in data:
                     if isinstance(cmd, str):
                         cmd = self.encoder(cmd)
-                    if "ACK" in cmd:
+                    if b"ACK" in cmd:
                         writer.write(cmd)
                         await writer.drain()
             else:
                 if isinstance(data, str):
                     data = self.encoder(data)
-                if "ACK" in data:
+                if b"ACK" in data:
                     writer.write(data)
                     await writer.drain()
         except Exception as e:
