@@ -274,12 +274,14 @@ class Server:
         if isinstance(data, tuple):
             for cmd in data:
                 if "ACK" in cmd:
-                    cmd = self.encoder(cmd)
+                    if isinstance(cmd, bytes):
+                        cmd = self.encoder(cmd)
                     writer.write(cmd)
                     await writer.drain()
         else:
             if "ACK" in data:
-                data = self.encoder(data)
+                if isinstance(data, bytes):
+                    data = self.encoder(data)
                 writer.write(data)
                 await writer.drain()
 
