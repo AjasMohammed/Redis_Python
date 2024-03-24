@@ -110,7 +110,7 @@ class Server:
                         and client[0] == master[0]
                         and client[1] == master[1]
                     ):
-                        self.should_respond(result, writer)
+                        await self.should_respond(result, writer)
                         print(f"Offset : {self.config.replication.command_offset}")
                         print(byte_data)
                         # self.config.replication.command_offset += len(data)
