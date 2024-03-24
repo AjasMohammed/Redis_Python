@@ -217,7 +217,7 @@ class Server:
             logging.info(f"Handshake STEP - 3 Response : {response}")
             print(f"Handshake STEP - 3 Response : {response}")
 
-            resp_data = response[:]
+            # resp_data = response[:]
             # master_info = resp_data.split(b"\r\n", 1).pop(0)
             # master_info = self.parser.decoder(master_info + b"\r\n")
             # print("RESPONSE: ", master_info)
