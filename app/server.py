@@ -76,6 +76,7 @@ class Server:
                 if not data:
                     break
                 print("Decoding...")
+                print('Data : ', data)
                 byte_data = self.parser.decoder(data)
 
                 logging.debug(f"bytes data is {byte_data}")
