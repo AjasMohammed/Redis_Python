@@ -13,12 +13,13 @@ class Replica:
 
 
 @dataclass(kw_only=True)
-class Replication:
+class ReplicationConfig:
 
     role: str = "master"
     master_replid: str = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
     master_repl_offset: int = 0
     command_offset: int = 0
+    slaves: list[Replica] = field(default_factory=list)
 
     def view_info(self) -> str:
         key_value_pairs = asdict(self)
@@ -47,7 +48,7 @@ class ServerConfiguration:
     dbfilename: str
     db_path: str = None
 
-    replication: list = field(default_factory=Replication)
+    replication: list = field(default_factory=ReplicationConfig)
 
     def handle_config(self, new_conf: list):
         keyword = new_conf.pop(0)
@@ -66,6 +67,6 @@ class ServerConfiguration:
 
 
 if __name__ == "__main__":
-    rep = Replication()
+    rep = ReplicationConfig()
     rdb = rep.empty_rdb()
     print("RDB: ", rdb)

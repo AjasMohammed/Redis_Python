@@ -27,7 +27,7 @@ class Server:
         self.parser: RedisProtocolParser = RedisProtocolParser()
         self.cmd: CommandHandler
 
-        self.slaves: list[Replica] = []
+        # self.config.replication.slaves: list[Replica] = []
         self.slave_tasks: list[asyncio.Task] = []
 
     async def start_server(self):
@@ -96,7 +96,7 @@ class Server:
                         writer=writer,
                         buffer_queue=asyncio.Queue(),
                     )
-                    self.slaves.append(replica)
+                    self.config.replication.slaves.append(replica)
                     self.slave_tasks.append(
                         asyncio.create_task(self.propagate_to_slave(replica))
                     )
@@ -138,7 +138,7 @@ class Server:
                             and self.is_writable(byte_data)
                         ):
                             print("propagating to slave")
-                            for slave in self.slaves:
+                            for slave in self.config.replication.slaves:
                                 # print(f"Saving data to queue : {slave}")
                                 await slave.buffer_queue.put(data)
             # Close the connection

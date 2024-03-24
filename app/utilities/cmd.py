@@ -115,8 +115,12 @@ class CommandHandler:
         return (response.encode("utf-8"), empty_rdb)
 
     async def _wait(self, args):
-        # res = []
-        return 0
+        numreplicas = int(args[0])
+        timeout = int(args[1])
+        total_replicas = len(self.config.replication.slaves)
+        if total_replicas < numreplicas:
+            return total_replicas
+        return numreplicas
 
     async def call_cmd(self, cmd: str, args):
         cmd = cmd.upper()
