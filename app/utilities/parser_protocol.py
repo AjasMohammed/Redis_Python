@@ -81,6 +81,7 @@ class RedisProtocolParser:
             except Exception as e:
                 print(e)
                 break
+        print(f'DECODED : {self.decoded}')
         return self.decoded
 
     def join_data(self, data):

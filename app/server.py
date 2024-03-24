@@ -134,7 +134,6 @@ class Server:
                             # Send PONG response back to the client
                             writer.write(pong)
                             await writer.drain()
-                        print(f"Is writable? : {self.is_writable(byte_data)}")
                         if (
                             self.config.replication.role == "master"
                             and self.is_writable(byte_data)
