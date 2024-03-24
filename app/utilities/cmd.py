@@ -109,7 +109,7 @@ class CommandHandler:
         )
         empty_rdb = self.config.replication.empty_rdb()
         ack = b'*3\r\n$8\r\nreplconf\r\n$6\r\ngetack\r\n$1\r\n*\r\n'
-        return (response.encode("utf-8"), empty_rdb, ack)
+        return (response.encode("utf-8"), empty_rdb)
 
     async def call_cmd(self, cmd: str, args):
         cmd = cmd.upper()
