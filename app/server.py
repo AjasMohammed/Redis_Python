@@ -114,7 +114,7 @@ class Server:
                         print("No Response...")
                         print(f"Offset : {self.config.replication.command_offset}")
                         print(byte_data)
-                        self.config.replication.command_offset += len(data)
+                        # self.config.replication.command_offset += len(data)
 
                     else:
                         if isinstance(result, bytes | tuple):
@@ -151,25 +151,27 @@ class Server:
                 break
         writer.close()
 
-    async def handle_command(self, data):
+    async def handle_command(self, data) -> list | tuple:
         logging.debug(f"data is {data}")
-        if isinstance(data[0], list):
+        if isinstance(data[0], list) and len(data) > 1:
             res = []
             for cmd in data:
                 keyword, *args = cmd
                 keyword = keyword.upper()
-                await self.cmd.call_cmd(keyword, args)
-                # self.writer.write(b"+OK\r\n")
-                # await self.writer.drain()
-                # print('Key - Values has been SET')
-                res.append(b"+OK\r\n")
-            return res
+                response = await self.cmd.call_cmd(keyword, args)
+                byte_data = self.parser.encoder(response)
+                if 'ACK' not in response:
+                    self.calculate_bytes(self.parser.encoder(cmd))
+                res.append(byte_data)
+            return tuple(res)
         else:
+            if isinstance(data[0], list):
+                data = data[0]
             keyword, *args = data
             keyword = keyword.upper()
             return await self.cmd.call_cmd(keyword, args)
 
-    async def listen_master(self):
+    async def listen_master(self) -> None:
         print("Listening Master")
 
         try:
@@ -181,7 +183,7 @@ class Server:
             self.writer.close()
             await self.writer.wait_closed()
 
-    async def handle_replication(self):
+    async def handle_replication(self) -> None:
         master_host = self.config.replication.master_host
         master_port = self.config.replication.master_port
         current_port = self.config.port
@@ -238,7 +240,7 @@ class Server:
         finally:
             logging.info("Handshake Completed...")
 
-    async def propagate_to_slave(self, replica: Replica):
+    async def propagate_to_slave(self, replica: Replica) -> None:
         print(
             f"Start background task to send write commands to {replica.host}:{replica.port}"
         )
@@ -251,6 +253,10 @@ class Server:
             except Exception as e:
                 print(e)
 
+    def calculate_bytes(self, data) -> int:
+        self.config.replication.command_offset += len(data)
+        
+    
     @staticmethod
     def is_writable(cmd):
         writable_cmd = [
@@ -278,3 +284,4 @@ class Server:
             for i in cmd:
                 res.append(i[0].upper() in writable_cmd)
             return all(res)
+

@@ -40,12 +40,13 @@ class RedisProtocolParser:
 
     def decoder(self, data: bytes):
         self.decoded = None
-        try :
+        try:
             data = data.decode()
         except UnicodeDecodeError:
-            print('Unicode Error')
+            print("Unicode Error")
 
         while DELIMETER in data:
+            # print('DATA : ', data.encode("utf-8"))
             if data.startswith("+"):
                 data, keyword = self.simple_string(data)
                 if isinstance(data, list):
@@ -60,7 +61,7 @@ class RedisProtocolParser:
             index = data.find(DELIMETER)
 
             if data.startswith("*"):
-                if data.count("*") > 1 and "*\r" not in data:
+                if data.count("*") > 1:
                     self.decoded, data = self.array(data)
                 else:
                     self.decoded = []
@@ -73,6 +74,7 @@ class RedisProtocolParser:
                 data = data[index + 2 :]
                 self.join_data(num)
             else:
+                print("UNKNOWN DATA : ", data)
                 break
         return self.decoded
 
@@ -90,11 +92,11 @@ class RedisProtocolParser:
         if encode:
             return "+" + data + DELIMETER
         else:
-            if ' ' not in data:
+            if " " not in data:
                 keyword = data[1:].rstrip(DELIMETER)
                 data = data[1 + len(keyword) + 2 :]
             else:
-                data = data[1:].rstrip(DELIMETER).split(' ')
+                data = data[1:].rstrip(DELIMETER).split(" ")
                 keyword = data[0]
             return data[1:], keyword
 
@@ -147,9 +149,11 @@ class RedisProtocolParser:
                 if index_2 == 0:
                     index_2 = -1
                 d = resp.decoder(data[index_1:index_2].encode("utf-8"))
-                new_data.append(d)
+                if d:
+                    new_data.append(d)
                 data = data[index_2:]
-
+                if data == '*\r\n':
+                    new_data[-1][-1] = '*'
             return new_data, data
 
 
