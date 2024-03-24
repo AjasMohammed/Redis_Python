@@ -48,7 +48,7 @@ class RedisProtocolParser:
 
         while DELIMETER in data:
             try:
-                # print('DATA : ', data.encode("utf-8"))
+                # print("DATA : ", data.encode("utf-8"))
                 if data.startswith("+"):
                     data, keyword = self.simple_string(data)
                     if isinstance(data, list):
@@ -63,7 +63,7 @@ class RedisProtocolParser:
                 index = data.find(DELIMETER)
 
                 if data.startswith("*"):
-                    if data.count("*") > 1 and '*\r' not in data:
+                    if data.count("*") > 1:
                         self.decoded, data = self.array(data)
                     else:
                         self.decoded = []
@@ -81,7 +81,6 @@ class RedisProtocolParser:
             except Exception as e:
                 print(e)
                 break
-        print(f'DECODED : {self.decoded}')
         return self.decoded
 
     def join_data(self, data):
@@ -147,27 +146,20 @@ class RedisProtocolParser:
             return prefix + "".join(mapped_data)
         else:
             new_data = []
-            index_1 = 0
-            while "*" in data:
-                try:
-                    index_2 = data[index_1 + 1 :].find("*") + 1
-                    print(index_1, index_2)
-                    print(data.encode())
-                    print(data[index_2 + 1].isdigit())
-                    if index_2 == 0:
-                        index_2 = -1
-                    elif data[index_2] == "*" and not data[index_2 + 1].isdigit():
-                        index_2 += 3
-                    d = resp.decoder(data[index_1:index_2].encode("utf-8"))
-                    if d:
-                        new_data.append(d)
-                    data = data[index_2:]
-                    if data == "*\r\n":
-                        new_data[-1][-1] = "*"
-                except Exception as e:
-                    print(e)
-                    break
-            return new_data, data
+            raw_data = data.split(DELIMETER)
+            raw_data.remove("")
+            while raw_data:
+                current_array = []
+                sym, arr_len = raw_data.pop(0)
+                total_len = int(arr_len) * 2
+                arr = raw_data[0:total_len]
+                for i in range(0, total_len, 2):
+                    byte_data = DELIMETER.join([arr[i], arr[i + 1]]) + DELIMETER
+                    parsed_data = resp.decoder(byte_data.encode("utf-8"))
+                    current_array.append(parsed_data)
+                new_data.append(current_array)
+                raw_data = raw_data[total_len:]
+            return new_data, raw_data
 
 
 # Usage example
@@ -183,6 +175,12 @@ if __name__ == "__main__":
     print("Data-2 :", decoded_data2)
     decoded_data3 = parser.decoder(
         "*5\r\n$4\r\nxadd\r\n$5\r\ngrape\r\n$3\r\n0-*\r\n$3\r\nfoo\r\n$3\r\nbar\r\n".encode(
+            "utf-8"
+        )
+    )
+    print("Data-3 :", decoded_data3)
+    decoded_data3 = parser.decoder(
+        "*1\r\n$4\r\nPING\r\n*3\r\n$8\r\nREPLCONF\r\n$6\r\nGETACK\r\n$1\r\n*\r\n".encode(
             "utf-8"
         )
     )
