@@ -144,7 +144,7 @@ class Server:
             # Close the connection
             except Exception as e:
                 print(e)
-                print(self.config.replication.role)
+                print("Error in handle_client")
                 break
         writer.close()
 
@@ -271,19 +271,23 @@ class Server:
         print(f"New offset : {self.config.replication.command_offset}")
 
     async def should_respond(self, data, writer):
-        if isinstance(data, tuple):
-            for cmd in data:
-                if "ACK" in cmd:
-                    if isinstance(cmd, str):
-                        cmd = self.encoder(cmd)
-                    writer.write(cmd)
+        try:
+            if isinstance(data, tuple):
+                for cmd in data:
+                    if "ACK" in cmd:
+                        if isinstance(cmd, str):
+                            cmd = self.encoder(cmd)
+                        writer.write(cmd)
+                        await writer.drain()
+            else:
+                if "ACK" in data:
+                    if isinstance(data, str):
+                        data = self.encoder(data)
+                    writer.write(data)
                     await writer.drain()
-        else:
-            if "ACK" in data:
-                if isinstance(data, str):
-                    data = self.encoder(data)
-                writer.write(data)
-                await writer.drain()
+        except Exception as e:
+            print("Error in should_respond")
+            print(e)
 
     @staticmethod
     def is_writable(cmd):
