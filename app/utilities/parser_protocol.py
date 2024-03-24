@@ -41,8 +41,9 @@ class RedisProtocolParser:
             else:
                 self.encoded = "$-1\r\n"  # Null Bulk String
 
-        except UnicodeDecodeError:
-            print("Unicode Error")
+        except UnicodeEncodeError:
+            print("Unicode Enncode Error")
+
             return None
         except Exception as e:
             print("Error in encoder")

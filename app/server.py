@@ -27,8 +27,8 @@ class Server:
         self.parser: RedisProtocolParser = RedisProtocolParser()
         self.cmd: CommandHandler
 
-        # self.config.replication.slaves: list[Replica] = []
-        self.slave_tasks: list[asyncio.Task] = []
+        self.server_writer: asyncio.StreamWriter = None
+        self.server_reader: asyncio.StreamReader = None
 
     async def start_server(self):
         server = await asyncio.start_server(
@@ -57,6 +57,7 @@ class Server:
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
+        self.server_reader, self.server_writer = reader, writer
         if self.config.replication.role == "slave":
             master = (
                 self.config.replication.master_host,
@@ -68,41 +69,18 @@ class Server:
         pong = b"+PONG\r\n"
         while True:
             try:
-                print("Waiting for data")
                 # Read data from the client
                 data = await reader.read(1024)
                 logging.debug(f"Recived data: {data}")
                 print(f"Recived data: {data} From {checkclient}")
                 if not data:
                     break
-                print("Decoding...")
-                print("Data : ", data)
-                byte_data = self.parser.decoder(data)
+                decoded_data = self.parser.decoder(data)
+                logging.debug(f"bytes data is {decoded_data}")
+                print(f"bytes data is {decoded_data}")
 
-                logging.debug(f"bytes data is {byte_data}")
-                print(f"bytes data is {byte_data}")
-
-                if (
-                    byte_data
-                    and isinstance(byte_data[0], str)
-                    and "replconf" == byte_data[0].lower()
-                    and client
-                    and byte_data[1] == "listening-port"
-                ):
-                    replica = Replica(
-                        host=client[0],
-                        port=client[1],
-                        reader=reader,
-                        writer=writer,
-                        buffer_queue=asyncio.Queue(),
-                    )
-                    self.config.replication.slaves.append(replica)
-                    self.slave_tasks.append(
-                        asyncio.create_task(self.propagate_to_slave(replica))
-                    )
-
-                if byte_data:
-                    result = await self.handle_command(byte_data)
+                if decoded_data:
+                    result = await self.handle_command(decoded_data)
                     print("RESULT: ", result)
 
                     if (
@@ -110,9 +88,9 @@ class Server:
                         and client[0] == master[0]
                         and client[1] == master[1]
                     ):
-                        await self.should_respond(result, writer)
+                        await self.should_respond(result)
                         print(f"Offset : {self.config.replication.command_offset}")
-                        print("Byte data : ", byte_data)
+                        print("Byte data : ", decoded_data)
 
                     else:
                         if isinstance(result, bytes | tuple):
@@ -134,18 +112,16 @@ class Server:
                             await writer.drain()
                         if (
                             self.config.replication.role == "master"
-                            and self.is_writable(byte_data)
+                            and self.is_writable(decoded_data)
                         ):
                             print("propagating to slave")
-                            for slave in self.config.replication.slaves:
-                                # print(f"Saving data to queue : {slave}")
+                            for slave in self.config.replication._slaves_list:
                                 await slave.buffer_queue.put(data)
             # Close the connection
             except Exception as e:
                 print("Error in handle_client")
                 print(e)
                 print(traceback.print_tb(e.__traceback__))
-
                 break
         writer.close()
 
@@ -157,7 +133,9 @@ class Server:
             for cmd in data:
                 keyword, *args = cmd
                 keyword = keyword.upper()
-                response = await self.cmd.call_cmd(keyword, args)
+                response = await self.cmd.call_cmd(
+                    keyword, args, reader=self.server_reader, writer=self.server_writer
+                )
                 byte_data = self.parser.encoder(response)
                 if (
                     self.config.replication.role == "slave"
@@ -173,7 +151,9 @@ class Server:
                 data = data[0]
             keyword, *args = data
             keyword = keyword.upper()
-            response = await self.cmd.call_cmd(keyword, args)
+            response = await self.cmd.call_cmd(
+                keyword, args, reader=self.server_reader, writer=self.server_writer
+            )
             if (
                 self.config.replication.role == "slave"
                 and response
@@ -253,41 +233,29 @@ class Server:
         finally:
             logging.info("Handshake Completed...")
 
-    async def propagate_to_slave(self, replica: Replica) -> None:
-        print(
-            f"Start background task to send write commands to {replica.host}:{replica.port}"
-        )
-        while True:
-            data = await replica.buffer_queue.get()
-            print(f" DATA : {data}")
-            try:
-                replica.writer.write(data)
-                await replica.writer.drain()
-            except Exception as e:
-                print(e)
-
     def calculate_bytes(self, data) -> int:
         print(f"Current offset : {self.config.replication.command_offset}")
         self.config.replication.command_offset += len(data)
         print(f"New offset : {self.config.replication.command_offset}")
 
-    async def should_respond(self, data, writer):
+    async def should_respond(self, data):
         try:
             if isinstance(data, tuple):
                 for cmd in data:
                     if isinstance(cmd, str):
-                        cmd = self.encoder(cmd)
+                        cmd = self.parser.encoder(cmd)
                     if b"ACK" in cmd:
-                        writer.write(cmd)
-                        await writer.drain()
+                        self.server_writer.write(cmd)
+                        await self.server_writer.drain()
             else:
                 if isinstance(data, str):
-                    data = self.encoder(data)
+                    data = self.parser.encoder(data)
                 if b"ACK" in data:
-                    writer.write(data)
-                    await writer.drain()
+                    self.server_writer.write(data)
+                    await self.server_writer.drain()
         except Exception as e:
             print("Error in should_respond")
+            print(e)
             print(traceback.print_tb(e.__traceback__))
 
     @staticmethod

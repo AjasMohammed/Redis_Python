@@ -19,7 +19,8 @@ class ReplicationConfig:
     master_replid: str = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
     master_repl_offset: int = 0
     command_offset: int = 0
-    slaves: list[Replica] = field(default_factory=list)
+    _slaves_list: list[Replica] = field(default_factory=list)
+    _connected_slaves: int = 0
 
     def view_info(self) -> str:
         key_value_pairs = asdict(self)
@@ -27,6 +28,18 @@ class ReplicationConfig:
             [f"{key}:{value}" for key, value in key_value_pairs.items()]
         )
         return response + "\r\n"
+
+    @property
+    def connected_slaves(self) -> int:
+        return self._connected_slaves
+
+    @connected_slaves.setter
+    def connected_slaves(self, value: int) -> None:
+        self._connected_slaves = value
+
+    def add_slave(self, slave: Replica) -> None:
+        self._slaves_list.append(slave)
+        self.connected_slaves = len(self._slaves_list)
 
     def psync(self) -> str:
         cmd = f"FULLRESYNC {self.master_replid} {self.master_repl_offset}"
@@ -48,7 +61,8 @@ class ServerConfiguration:
     dbfilename: str
     db_path: str = None
 
-    replication: list = field(default_factory=ReplicationConfig)
+    replication: list[ReplicationConfig] = field(default_factory=ReplicationConfig)
+    slave_tasks: list[asyncio.Task] = field(default_factory=list)
 
     def handle_config(self, new_conf: list):
         keyword = new_conf.pop(0)
