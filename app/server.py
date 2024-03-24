@@ -143,8 +143,8 @@ class Server:
                                 await slave.buffer_queue.put(data)
             # Close the connection
             except Exception as e:
-                print(e)
                 print("Error in handle_client")
+                print(e)
                 break
         writer.close()
 
@@ -287,7 +287,6 @@ class Server:
                     await writer.drain()
         except Exception as e:
             print("Error in should_respond")
-            print(str(e))
             print(traceback.print_tb(e.__traceback__))
 
     @staticmethod
