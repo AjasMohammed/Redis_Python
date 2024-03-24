@@ -28,6 +28,9 @@ class RedisProtocolParser:
                     self.encoded = self.simple_string(data, encode=True)
                 else:
                     self.encoded = self.bulk_string(data, encode=True)
+            
+            elif isinstance(data, int):
+                self.encoded = self.integer(data, encode=True)
 
             elif isinstance(data, list):
                 self.encoded = self.array(data, encode=True)
