@@ -109,9 +109,8 @@ class Server:
                         self.config.replication.role == "slave"
                         and client[0] == master[0]
                         and client[1] == master[1]
-                        and "ACK" not in result
                     ):
-                        print("No Response...")
+                        self.should_respond(result, writer)
                         print(f"Offset : {self.config.replication.command_offset}")
                         print(byte_data)
                         # self.config.replication.command_offset += len(data)
@@ -142,7 +141,6 @@ class Server:
                             for slave in self.slaves:
                                 # print(f"Saving data to queue : {slave}")
                                 await slave.buffer_queue.put(data)
-
             # Close the connection
             except Exception as e:
                 print(e)
@@ -242,7 +240,7 @@ class Server:
             print("RESPONSE: ", master_info)
             index = resp_data.find(b"*")
             ack_cmd = self.parser.decoder(resp_data[index:])
-            print('ACK CMD : ', ack_cmd)
+            print("ACK CMD : ", ack_cmd)
             result = await self.handle_command(ack_cmd)
             print("ACK RESULT : ", result)
             encoded_data = self.parser.encoder(result)
@@ -271,6 +269,19 @@ class Server:
         print(f"Current offset : {self.config.replication.command_offset}")
         self.config.replication.command_offset += len(data)
         print(f"New offset : {self.config.replication.command_offset}")
+
+    async def should_respond(self, data, writer):
+        if isinstance(data, tuple):
+            for cmd in data:
+                if "ACK" in cmd:
+                    cmd = self.encoder(cmd)
+                    writer.write(cmd)
+                    await writer.drain()
+        else:
+            if "ACK" in data:
+                data = self.encoder(data)
+                writer.write(data)
+                await writer.drain()
 
     @staticmethod
     def is_writable(cmd):
