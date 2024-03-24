@@ -287,7 +287,7 @@ class Server:
                     await writer.drain()
         except Exception as e:
             print("Error in should_respond")
-            print(e)
+            print(e.with_traceback())
 
     @staticmethod
     def is_writable(cmd):
