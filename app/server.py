@@ -112,8 +112,7 @@ class Server:
                     ):
                         await self.should_respond(result, writer)
                         print(f"Offset : {self.config.replication.command_offset}")
-                        print(byte_data)
-                        # self.config.replication.command_offset += len(data)
+                        print("Byte data : ", byte_data)
 
                     else:
                         if isinstance(result, bytes | tuple):
@@ -145,6 +144,8 @@ class Server:
             except Exception as e:
                 print("Error in handle_client")
                 print(e)
+                print(traceback.print_tb(e.__traceback__))
+
                 break
         writer.close()
 
