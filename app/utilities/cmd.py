@@ -100,6 +100,7 @@ class CommandHandler:
             pass
         elif args[0].lower() == "getack":
             offset = self.config.replication.command_offset
+            print('Commande Offset : ', offset)
             self.config.replication.command_offset += 37
             return ['REPLCONF', 'ACK', str(offset)]
         return "OK"

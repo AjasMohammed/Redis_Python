@@ -108,7 +108,7 @@ class Server:
                         self.config.replication.role == "slave"
                         and client[0] == master[0]
                         and client[1] == master[1]
-                        and "ACK" not in byte_data
+                        and "ACK" not in result
                     ):
                         print("No Response...")
                         print(f"Offset : {self.config.replication.command_offset}")
