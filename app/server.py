@@ -109,7 +109,8 @@ class Server:
                         and client[1] == master[1]
                         and "ACK" not in byte_data
                     ):
-                        print("FROM MASTER")
+                        print("No Response...")
+                        self.config.replication.command_offset += len(data)
 
                     else:
                         if isinstance(result, bytes | tuple):

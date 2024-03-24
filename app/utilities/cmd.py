@@ -3,7 +3,6 @@ from app.utilities import (
     Store,
     ServerConfiguration,
     RedisProtocolParser,
-    Replica
 )
 
 
@@ -100,7 +99,9 @@ class CommandHandler:
         if args[0].lower() == "listening-port":
             pass
         elif args[0].lower() == "getack":
-            return ['REPLCONF', 'ACK', '0']
+            offset = self.config.replication.command_offset
+            self.config.replication.command_offset += 37
+            return ['REPLCONF', 'ACK', str(offset)]
         return "OK"
 
     async def _psync(self, args):

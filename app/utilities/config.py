@@ -18,19 +18,20 @@ class Replication:
     role: str = "master"
     master_replid: str = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
     master_repl_offset: int = 0
+    command_offset: int = 0
 
-    def view_info(self):
+    def view_info(self) -> str:
         key_value_pairs = asdict(self)
         response = "\r\n".join(
             [f"{key}:{value}" for key, value in key_value_pairs.items()]
         )
         return response + "\r\n"
 
-    def psync(self):
+    def psync(self) -> str:
         cmd = f"FULLRESYNC {self.master_replid} {self.master_repl_offset}"
         return cmd
 
-    def empty_rdb(self):
+    def empty_rdb(self) -> bytes:
         empty_rdb_hex = "524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2"
         empty_rdb = bytes.fromhex(empty_rdb_hex)
         res = f"${len(empty_rdb)}\r\n".encode()
