@@ -169,7 +169,10 @@ class Server:
                 data = data[0]
             keyword, *args = data
             keyword = keyword.upper()
-            return await self.cmd.call_cmd(keyword, args)
+            response = await self.cmd.call_cmd(keyword, args)
+            if 'ACK' not in response:
+                    self.calculate_bytes(self.parser.encoder(data))
+            return response
 
     async def listen_master(self) -> None:
         print("Listening Master")

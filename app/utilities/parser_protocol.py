@@ -46,35 +46,39 @@ class RedisProtocolParser:
             print("Unicode Error")
 
         while DELIMETER in data:
-            # print('DATA : ', data.encode("utf-8"))
-            if data.startswith("+"):
-                data, keyword = self.simple_string(data)
-                if isinstance(data, list):
-                    data = [keyword, *data]
-                    return data
-                else:
+            try:
+                # print('DATA : ', data.encode("utf-8"))
+                if data.startswith("+"):
+                    data, keyword = self.simple_string(data)
+                    if isinstance(data, list):
+                        data = [keyword, *data]
+                        return data
+                    else:
+                        self.join_data(keyword)
+
+                elif data.startswith("-"):
+                    return self.simple_error(data)
+
+                index = data.find(DELIMETER)
+
+                if data.startswith("*"):
+                    if data.count("*") > 1 and '*\r' not in data:
+                        self.decoded, data = self.array(data)
+                    else:
+                        self.decoded = []
+                        data = data[index + 2 :]
+                elif data.startswith("$"):
+                    data, keyword = self.bulk_string(data, index)
                     self.join_data(keyword)
-
-            elif data.startswith("-"):
-                return self.simple_error(data)
-
-            index = data.find(DELIMETER)
-
-            if data.startswith("*"):
-                if data.count("*") > 1:
-                    self.decoded, data = self.array(data)
-                else:
-                    self.decoded = []
+                elif data.startswith(":"):
+                    num = int(data[1 : index + 2].rstrip(DELIMETER))
                     data = data[index + 2 :]
-            elif data.startswith("$"):
-                data, keyword = self.bulk_string(data, index)
-                self.join_data(keyword)
-            elif data.startswith(":"):
-                num = int(data[1 : index + 2].rstrip(DELIMETER))
-                data = data[index + 2 :]
-                self.join_data(num)
-            else:
-                print("UNKNOWN DATA : ", data)
+                    self.join_data(num)
+                else:
+                    print("UNKNOWN DATA : ", data)
+                    break
+            except Exception as e:
+                print(e)
                 break
         return self.decoded
 
@@ -138,31 +142,46 @@ class RedisProtocolParser:
             mapped_data = map(
                 lambda keyword: resp.encoder(keyword).decode("utf-8"), data
             )
-
             return prefix + "".join(mapped_data)
         else:
             new_data = []
             index_1 = 0
-            x = 0
             while "*" in data:
-                index_2 = data[index_1 + 1 :].find("*") + 1
-                if index_2 == 0:
-                    index_2 = -1
-                d = resp.decoder(data[index_1:index_2].encode("utf-8"))
-                if d:
-                    new_data.append(d)
-                data = data[index_2:]
-                if data == '*\r\n':
-                    new_data[-1][-1] = '*'
+                try:
+                    index_2 = data[index_1 + 1 :].find("*") + 1
+                    print(index_1, index_2)
+                    print(data.encode())
+                    print(data[index_2 + 1].isdigit())
+                    if index_2 == 0:
+                        index_2 = -1
+                    elif data[index_2] == "*" and not data[index_2 + 1].isdigit():
+                        index_2 += 3
+                    d = resp.decoder(data[index_1:index_2].encode("utf-8"))
+                    if d:
+                        new_data.append(d)
+                    data = data[index_2:]
+                    if data == "*\r\n":
+                        new_data[-1][-1] = "*"
+                except Exception as e:
+                    print(e)
+                    break
             return new_data, data
 
 
 # Usage example
 if __name__ == "__main__":
     parser = RedisProtocolParser()
-    decoded_data = parser.decoder(
+    decoded_data1 = parser.decoder(
         "*3\r\n$3\r\nSET\r\n$3\r\nfoo\r\n$3\r\n123\r\n*3\r\n$3\r\nSET\r\n$3\r\nbar\r\n$3\r\n456\r\n*3\r\n$3\r\nSET\r\n$3\r\nbaz\r\n$3\r\n789\r\n".encode(
             "utf-8"
         )
     )
-    print(decoded_data)
+    print("Data-1 :", decoded_data1)
+    decoded_data2 = parser.decoder("*2\r\n$4\r\nkeys\r\n$1\r\n*\r\n".encode("utf-8"))
+    print("Data-2 :", decoded_data2)
+    decoded_data3 = parser.decoder(
+        "*5\r\n$4\r\nxadd\r\n$5\r\ngrape\r\n$3\r\n0-*\r\n$3\r\nfoo\r\n$3\r\nbar\r\n".encode(
+            "utf-8"
+        )
+    )
+    print("Data-3 :", decoded_data3)
