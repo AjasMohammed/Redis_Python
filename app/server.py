@@ -102,6 +102,7 @@ class Server:
 
                 if byte_data:
                     result = await self.handle_command(byte_data)
+                    print("RESULT: ", result)
 
                     if (
                         self.config.replication.role == "slave"
@@ -110,6 +111,8 @@ class Server:
                         and "ACK" not in byte_data
                     ):
                         print("No Response...")
+                        print(f"Offset : {self.config.replication.command_offset}")
+                        print(byte_data)
                         self.config.replication.command_offset += len(data)
 
                     else:
