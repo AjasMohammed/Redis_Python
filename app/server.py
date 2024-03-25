@@ -69,7 +69,7 @@ class Server:
 
                 if not data:
                     break
-                
+
                 decoded_data = self.parser.decoder(data)
                 logging.debug(f"bytes data is {decoded_data}")
                 print(f"bytes data is {decoded_data}")
@@ -193,6 +193,9 @@ class Server:
         except asyncio.CancelledError:
             self.writer.close()
             await self.writer.wait_closed()
+        except Exception as e:
+            print(e)
+            print(traceback.print_tb(e.__traceback__))
 
     async def handle_replication(self) -> None:
         master_host = self.config.replication.master_host

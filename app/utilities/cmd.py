@@ -169,6 +169,7 @@ class CommandHandler:
                 await replica.writer.drain()
             except Exception as e:
                 print(e)
+                print(traceback.print_tb(e.__traceback__))
 
     @staticmethod
     def check_index(keyword, array):
