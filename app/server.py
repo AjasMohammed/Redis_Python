@@ -246,10 +246,8 @@ class Server:
             print("RESPONSE: ", master_info)
             index = resp_data.find(b"*")
             ack_cmd = self.parser.decoder(resp_data[index:])
-            print("ACK CMD : ", ack_cmd)
             result = await self.handle_command(ack_cmd)
             print("ACK RESULT : ", result)
-            # encoded_data = self.parser.encoder(result)
             self.writer.write(result)
             await self.writer.drain()
         except Exception as e:
