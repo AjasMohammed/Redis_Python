@@ -155,17 +155,10 @@ class Server:
                 if client[0] == master[0] and client[1] == master[1]:
                     await self.should_respond(data)
                     print(f"Offset : {self.config.replication.command_offset}")
-                    # data = await self.listen_server()
-                    # print(f"New data : {data}")
                     return
 
             writer.write(data)
             await writer.drain()
-            print("Wrote PONG response back to the client")
-            # data = await self.listen_server()
-            # decoded = self.parser.decoder(data)
-            # print(f"New data : {data}")
-            # await self.handle_command(decoded)
             return
         except Exception as e:
             print("Error in write_to_client")
@@ -232,12 +225,11 @@ class Server:
             index = resp_data.find(b"*")
             ack_cmd = self.parser.decoder(resp_data[index:])
             print("ACK CMD : ", ack_cmd)
-            if ack_cmd:
-                result = await self.handle_command(ack_cmd)
-                print("ACK RESULT : ", result)
-                encoded_data = self.parser.encoder(result)
-                self.writer.write(encoded_data)
-                await self.writer.drain()
+            result = await self.handle_command(ack_cmd)
+            print("ACK RESULT : ", result)
+            encoded_data = self.parser.encoder(result)
+            self.writer.write(encoded_data)
+            await self.writer.drain()
         except Exception as e:
             logging.error(f"Handshake failed: {traceback.print_tb(e.__traceback__)}")
 
