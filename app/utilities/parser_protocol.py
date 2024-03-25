@@ -18,12 +18,10 @@ class RedisProtocolParser:
         self.encoded = None
 
     def encoder(self, data: list | str | dict) -> bytes | None:
+        print("ENCODING : ", data)
         try:
             self.encoded = None
             if isinstance(data, str):
-                # if data.isdigit():
-                #     self.encoded = self.integer(data, encode=True)
-                # else:
                 if data.lower() in self.STRING_CONSTANTS:
                     self.encoded = self.simple_string(data, encode=True)
                 else:
@@ -52,6 +50,7 @@ class RedisProtocolParser:
 
     def decoder(self, data: bytes):
         self.decoded = None
+        print("DECODING : ", data)
         try:
             data = data.decode()
         except UnicodeDecodeError:
