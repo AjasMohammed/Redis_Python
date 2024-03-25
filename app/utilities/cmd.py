@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, traceback
 from app.utilities import (
     DatabaseParser,
     Store,
@@ -145,6 +145,7 @@ class CommandHandler:
                 print("Command not found...")
         except Exception as e:
             print(e)
+            print(traceback.print_tb(e.__traceback__))
             return None
 
     async def create_replica(self, client, reader, writer):
