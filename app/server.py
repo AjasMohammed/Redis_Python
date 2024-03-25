@@ -105,43 +105,44 @@ class Server:
     async def handle_command(self, data) -> list | tuple:
         logging.debug(f"data is {data}")
         print(f"data is {data}")
-        if isinstance(data[0], list) and len(data) > 1:
-            res = []
-            for cmd in data:
-                keyword, *args = cmd
+        if data:
+            if isinstance(data[0], list) and len(data) > 1:
+                res = []
+                for cmd in data:
+                    keyword, *args = cmd
+                    keyword = keyword.upper()
+                    response = await self.cmd.call_cmd(
+                        keyword, args, reader=self.server_reader, writer=self.server_writer
+                    )
+                    byte_data = self.parser.encoder(response)
+                    if (
+                        self.config.replication.role == "slave"
+                        and response
+                        and "ACK" not in response
+                    ):
+                        self.calculate_bytes(self.parser.encoder(cmd))
+                    res.append(byte_data)
+                    # await self.write_to_client(byte_data)
+                print("RES: ", res)
+                return tuple(res)
+            else:
+                if isinstance(data[0], list):
+                    data = data[0]
+                keyword, *args = data
                 keyword = keyword.upper()
                 response = await self.cmd.call_cmd(
                     keyword, args, reader=self.server_reader, writer=self.server_writer
                 )
-                byte_data = self.parser.encoder(response)
                 if (
                     self.config.replication.role == "slave"
                     and response
                     and "ACK" not in response
                 ):
-                    self.calculate_bytes(self.parser.encoder(cmd))
-                res.append(byte_data)
-                # await self.write_to_client(byte_data)
-            print("RES: ", res)
-            return tuple(res)
-        else:
-            if isinstance(data[0], list):
-                data = data[0]
-            keyword, *args = data
-            keyword = keyword.upper()
-            response = await self.cmd.call_cmd(
-                keyword, args, reader=self.server_reader, writer=self.server_writer
-            )
-            if (
-                self.config.replication.role == "slave"
-                and response
-                and "ACK" not in response
-            ):
-                self.calculate_bytes(self.parser.encoder(data))
-            # await self.write_to_client(self.parser.encoder(response))
-            encoded_data = self.parser.encoder(response)
-            return encoded_data
-
+                    self.calculate_bytes(self.parser.encoder(data))
+                # await self.write_to_client(self.parser.encoder(response))
+                encoded_data = self.parser.encoder(response)
+                return encoded_data
+        return None
     async def write_to_client(self, data, writer: asyncio.StreamWriter) -> None:
 
         print(f"Writing Data: {data}")
@@ -163,6 +164,7 @@ class Server:
         except Exception as e:
             print("Error in write_to_client")
             print(e)
+            print(traceback.print_tb(e.__traceback__))
             logging.error(traceback.print_tb(e.__traceback__))
 
     async def listen_master(self) -> None:
