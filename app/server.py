@@ -55,13 +55,13 @@ class Server:
     async def handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
-        self.server_reader, self.server_writer = reader, writer
 
         checkclient = writer.get_extra_info("peername")
         logging.info(f"Peer : {checkclient}")
         pong = b"+PONG\r\n"
         while True:
             try:
+                self.server_reader, self.server_writer = reader, writer
                 # Read data from the client
                 data = await reader.read(1024)
                 logging.debug(f"Recived data: {data}")
