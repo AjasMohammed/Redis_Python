@@ -96,7 +96,7 @@ class Server:
                 break
         writer.close()
 
-    async def listen_server(self) -> None:
+    async def read_data(self) -> None:
         print("Listening Server")
         data = await self.server_reader.read(1024)
         print(f"Reading Data: {data}")
