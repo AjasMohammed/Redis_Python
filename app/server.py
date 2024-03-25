@@ -149,7 +149,7 @@ class Server:
                         and "ACK" not in response
                     ):
                         self.calculate_bytes(self.parser.encoder(data))
-                    if isinstance(response, tuple):
+                    if isinstance(response, tuple) or isinstance(response, bytes):
                         return response
                     encoded_data = self.parser.encoder(response)
                     return encoded_data
