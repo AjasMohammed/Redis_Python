@@ -103,7 +103,8 @@ class CommandHandler:
             writer = kwargs["writer"]
             reader = kwargs["reader"]
             client = writer.get_extra_info("peername")
-            await self.create_replica(client[0], args[1], reader, writer)
+            print(f'Client {client} connected')
+            await self.create_replica(client[0], int(args[1]), reader, writer)
 
         elif args[0].lower() == "getack":
             offset = self.config.replication.command_offset
