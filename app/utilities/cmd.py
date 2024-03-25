@@ -167,6 +167,7 @@ class CommandHandler:
             try:
                 replica.writer.write(data)
                 await replica.writer.drain()
+                print("Wrote Data to Slave", (replica.host, replica.port))
             except Exception as e:
                 print(e)
                 print(traceback.print_tb(e.__traceback__))

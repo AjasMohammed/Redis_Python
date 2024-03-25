@@ -86,9 +86,10 @@ class Server:
                     if self.config.replication.role == "master" and self.is_writable(
                         decoded_data
                     ):
-                        print("propagating to slave")
+                        print("propagating to slaves")
                         for slave in self.config.replication._slaves_list:
                             await slave.buffer_queue.put(data)
+                        print("propagated to slaves")
             # Close the connection
             except Exception as e:
                 print("Error in handle_client")
