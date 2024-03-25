@@ -147,8 +147,8 @@ class CommandHandler:
 
     async def create_replica(self, client_host, client_port, reader, writer):
         replica = Replica(
-            host=client_host[0],
-            port=client_port[1],
+            host=client_host,
+            port=client_port,
             reader=reader,
             writer=writer,
             buffer_queue=asyncio.Queue(),
