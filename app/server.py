@@ -113,7 +113,10 @@ class Server:
                         keyword, *args = cmd
                         keyword = keyword.upper()
                         response = await self.cmd.call_cmd(
-                            keyword, args, reader=self.server_reader, writer=self.server_writer
+                            keyword,
+                            args,
+                            reader=self.server_reader,
+                            writer=self.server_writer,
                         )
                         byte_data = self.parser.encoder(response)
                         if (
@@ -132,7 +135,10 @@ class Server:
                     keyword, *args = data
                     keyword = keyword.upper()
                     response = await self.cmd.call_cmd(
-                        keyword, args, reader=self.server_reader, writer=self.server_writer
+                        keyword,
+                        args,
+                        reader=self.server_reader,
+                        writer=self.server_writer,
                     )
                     if (
                         self.config.replication.role == "slave"
@@ -140,7 +146,6 @@ class Server:
                         and "ACK" not in response
                     ):
                         self.calculate_bytes(self.parser.encoder(data))
-                    # await self.write_to_client(self.parser.encoder(response))
                     if isinstance(response, tuple):
                         return response
                     encoded_data = self.parser.encoder(response)
@@ -151,6 +156,7 @@ class Server:
                 print(traceback.print_tb(e.__traceback__))
                 logging.error(traceback.print_tb(e.__traceback__))
         return None
+
     async def write_to_client(self, data, writer: asyncio.StreamWriter) -> None:
 
         print(f"Writing Data: {data}")
