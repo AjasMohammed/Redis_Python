@@ -138,7 +138,9 @@ class CommandHandler:
         print("CMD: ", cmd)
         try:
             if cmd in self.cmds:
-                return await self.cmds[cmd](args, **kwargs)
+                response = await self.cmds[cmd](args, **kwargs)
+                print('CMD RESPONSE : ', response)
+                return response
             else:
                 print("Command not found...")
         except Exception as e:
