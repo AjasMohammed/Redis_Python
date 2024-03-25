@@ -118,7 +118,12 @@ class CommandHandler:
         )
         empty_rdb = self.config.replication.empty_rdb()
         ack = b"*3\r\n$8\r\nreplconf\r\n$6\r\ngetack\r\n$1\r\n*\r\n"
-        return (response.encode("utf-8"), empty_rdb)
+        writer = kwargs["writer"]
+        writer.write(response.encode("utf-8"))
+        await writer.drain()
+        writer.write(empty_rdb)
+        await writer.drain()
+        return
 
     async def _wait(self, args, **kwargs):
         numreplicas = int(args[0])
@@ -131,10 +136,14 @@ class CommandHandler:
     async def call_cmd(self, cmd: str, args, **kwargs):
         cmd = cmd.upper()
         print("CMD: ", cmd)
-        if cmd in self.cmds:
-            return await self.cmds[cmd](args, **kwargs)
-        else:
-            print("Command not found...")
+        try:
+            if cmd in self.cmds:
+                return await self.cmds[cmd](args, **kwargs)
+            else:
+                print("Command not found...")
+        except Exception as e:
+            print(e)
+            return None
 
     async def create_replica(self, client, reader, writer):
         replica = Replica(
