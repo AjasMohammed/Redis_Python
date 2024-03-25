@@ -104,7 +104,7 @@ class CommandHandler:
             reader = kwargs["reader"]
             client = writer.get_extra_info("peername")
             print(f'Client {client} connected')
-            await self.create_replica(client[0], int(args[1]), reader, writer)
+            await self.create_replica(client, reader, writer)
 
         elif args[0].lower() == "getack":
             offset = self.config.replication.command_offset
@@ -145,10 +145,10 @@ class CommandHandler:
             print(traceback.print_tb(e.__traceback__))
             return None
 
-    async def create_replica(self, client_host, client_port, reader, writer):
+    async def create_replica(self, client, reader, writer):
         replica = Replica(
-            host=client_host,
-            port=client_port,
+            host=client[0],
+            port=client[1],
             reader=reader,
             writer=writer,
             buffer_queue=asyncio.Queue(),
