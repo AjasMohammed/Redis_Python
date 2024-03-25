@@ -81,8 +81,8 @@ class Server:
                 print(f"bytes data is {decoded_data}")
 
                 if decoded_data:
-                    result = await self.handle_command(decoded_data)
-                    print("RESULT: ", result)
+                    await self.handle_command(decoded_data)
+                    # print("RESULT: ", result)
 
                     # if (
                     #     self.config.replication.role == "slave"
@@ -126,7 +126,9 @@ class Server:
 
     async def listen_server(self) -> None:
         print("Listening Server")
-        return await self.server_reader.read(1024)
+        data = await self.server_reader.read(1024)
+        print(f"Reading Data: {data}")
+        return data
 
     async def handle_command(self, data) -> list | tuple:
         logging.debug(f"data is {data}")
