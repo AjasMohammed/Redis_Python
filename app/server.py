@@ -64,11 +64,12 @@ class Server:
             try:
                 # Read data from the client
                 data = await reader.read(1024)
-                # data = await self.listen_server()
                 logging.debug(f"Recived data: {data}")
                 print(f"Recived data: {data} From {checkclient}")
+
                 if not data:
                     break
+                
                 decoded_data = self.parser.decoder(data)
                 logging.debug(f"bytes data is {decoded_data}")
                 print(f"bytes data is {decoded_data}")
