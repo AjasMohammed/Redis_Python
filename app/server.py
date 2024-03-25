@@ -87,6 +87,7 @@ class Server:
                         decoded_data
                     ):
                         print("propagating to slaves")
+                        print(f"Total Slaves: {self.config.replication._slaves_list}")
                         for slave in self.config.replication._slaves_list:
                             await slave.buffer_queue.put(data)
                         print("propagated to slaves")
