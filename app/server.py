@@ -249,8 +249,8 @@ class Server:
             print("ACK CMD : ", ack_cmd)
             result = await self.handle_command(ack_cmd)
             print("ACK RESULT : ", result)
-            encoded_data = self.parser.encoder(result)
-            self.writer.write(encoded_data)
+            # encoded_data = self.parser.encoder(result)
+            self.writer.write(result)
             await self.writer.drain()
         except Exception as e:
             logging.error(f"Handshake failed: {traceback.print_tb(e.__traceback__)}")
