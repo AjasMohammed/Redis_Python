@@ -56,14 +56,9 @@ class Server:
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         self.server_reader, self.server_writer = reader, writer
-        if self.config.replication.role == "slave":
-            master = (
-                self.config.replication.master_host,
-                int(self.config.replication.master_port),
-            )
-        client = writer.get_extra_info("peername")
+
         checkclient = writer.get_extra_info("peername")
-        logging.info(f"Peer : {client}")
+        logging.info(f"Peer : {checkclient}")
         pong = b"+PONG\r\n"
         while True:
             try:
@@ -82,30 +77,11 @@ class Server:
                     response = await self.handle_command(decoded_data)
                     print("RESULT: ", response)
 
-                    # if (
-                    #     self.config.replication.role == "slave"
-                    #     and client[0] == master[0]
-                    #     and client[1] == master[1]
-                    # ):
-                    #     await self.should_respond(result)
-                    #     print(f"Offset : {self.config.replication.command_offset}")
-
-                    # else:
-                    #     if isinstance(result, bytes | tuple):
-                    #         encoded = result
-                    #     else:
-                    #         encoded = self.parser.encoder(result)
-                    #     print(f"Encoded : {encoded}")
-                    #     if encoded:
                     if isinstance(response, tuple):
                         for item in response:
                             await self.write_to_client(item, writer)
                     else:
                         await self.write_to_client(response, writer)
-                    #     else:
-                    #         # Send PONG response back to the client
-                    #         writer.write(pong)
-                    #         await writer.drain()
                     if self.config.replication.role == "master" and self.is_writable(
                         decoded_data
                     ):
@@ -256,13 +232,14 @@ class Server:
             index = resp_data.find(b"*")
             ack_cmd = self.parser.decoder(resp_data[index:])
             print("ACK CMD : ", ack_cmd)
-            result = await self.handle_command(ack_cmd)
-            print("ACK RESULT : ", result)
-            encoded_data = self.parser.encoder(result)
-            self.writer.write(encoded_data)
-            await self.writer.drain()
+            if ack_cmd:
+                result = await self.handle_command(ack_cmd)
+                print("ACK RESULT : ", result)
+                encoded_data = self.parser.encoder(result)
+                self.writer.write(encoded_data)
+                await self.writer.drain()
         except Exception as e:
-            logging.error(f"Handshake failed: {e}")
+            logging.error(f"Handshake failed: {traceback.print_tb(e.__traceback__)}")
 
         finally:
             logging.info("Handshake Completed...")
