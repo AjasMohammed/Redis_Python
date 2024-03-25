@@ -118,11 +118,7 @@ class CommandHandler:
         )
         empty_rdb = self.config.replication.empty_rdb()
         ack = b"*3\r\n$8\r\nreplconf\r\n$6\r\ngetack\r\n$1\r\n*\r\n"
-        # writer = kwargs["writer"]
-        # writer.write(response.encode("utf-8"))
-        # await writer.drain()
-        # writer.write(empty_rdb)
-        # await writer.drain()
+
         return (response.encode("utf-8"), empty_rdb)
 
     async def _wait(self, args, **kwargs):

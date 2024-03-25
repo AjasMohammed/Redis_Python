@@ -141,6 +141,8 @@ class Server:
                     ):
                         self.calculate_bytes(self.parser.encoder(data))
                     # await self.write_to_client(self.parser.encoder(response))
+                    if isinstance(response, tuple):
+                        return response
                     encoded_data = self.parser.encoder(response)
                     return encoded_data
             except Exception as e:
