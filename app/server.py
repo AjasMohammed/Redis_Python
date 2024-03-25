@@ -3,14 +3,12 @@ import logging
 import os
 import traceback
 from .utilities import (
+    CommandHandler,
+    DatabaseParser,
     RedisProtocolParser,
     Store,
-    DatabaseParser,
-    Replica,
     ServerConfiguration,
-    CommandHandler,
 )
-
 
 logging.basicConfig(
     filename="main.log",
@@ -70,8 +68,8 @@ class Server:
         while True:
             try:
                 # Read data from the client
-                # data = await reader.read(1024)
-                data = await self.listen_server()
+                data = await reader.read(1024)
+                # data = await self.listen_server()
                 logging.debug(f"Recived data: {data}")
                 print(f"Recived data: {data} From {checkclient}")
                 if not data:
@@ -81,8 +79,8 @@ class Server:
                 print(f"bytes data is {decoded_data}")
 
                 if decoded_data:
-                    await self.handle_command(decoded_data)
-                    # print("RESULT: ", result)
+                    response = await self.handle_command(decoded_data)
+                    print("RESULT: ", response)
 
                     # if (
                     #     self.config.replication.role == "slave"
@@ -99,13 +97,11 @@ class Server:
                     #         encoded = self.parser.encoder(result)
                     #     print(f"Encoded : {encoded}")
                     #     if encoded:
-                    #         if isinstance(encoded, tuple):
-                    #             for item in encoded:
-                    #                 writer.write(item)
-                    #                 await writer.drain()
-                    #         else:
-                    #             writer.write(encoded)
-                    #             await writer.drain()
+                    if isinstance(response, tuple):
+                        for item in response:
+                            await self.write_to_client(item, writer)
+                    else:
+                        await self.write_to_client(response, writer)
                     #     else:
                     #         # Send PONG response back to the client
                     #         writer.write(pong)
@@ -148,10 +144,10 @@ class Server:
                     and "ACK" not in response
                 ):
                     self.calculate_bytes(self.parser.encoder(cmd))
-                # res.append(byte_data)
-                await self.write_to_client(byte_data)
-            # print("RES: ", res)
-            # return tuple(res)
+                res.append(byte_data)
+                # await self.write_to_client(byte_data)
+            print("RES: ", res)
+            return tuple(res)
         else:
             if isinstance(data[0], list):
                 data = data[0]
@@ -166,17 +162,20 @@ class Server:
                 and "ACK" not in response
             ):
                 self.calculate_bytes(self.parser.encoder(data))
-            await self.write_to_client(self.parser.encoder(response))
-            # return response
+            # await self.write_to_client(self.parser.encoder(response))
+            encoded_data = self.parser.encoder(response)
+            return encoded_data
 
-    async def write_to_client(self, data) -> None:
+    async def write_to_client(self, data, writer: asyncio.StreamWriter) -> None:
+
+        print(f"Writing Data: {data}")
         try:
             if self.config.replication.role == "slave":
                 master = (
                     self.config.replication.master_host,
                     int(self.config.replication.master_port),
                 )
-                client = self.server_writer.get_extra_info("peername")
+                client = writer.get_extra_info("peername")
                 if client[0] == master[0] and client[1] == master[1]:
                     await self.should_respond(data)
                     print(f"Offset : {self.config.replication.command_offset}")
@@ -184,10 +183,13 @@ class Server:
                     # print(f"New data : {data}")
                     return
 
-            self.server_writer.write(data)
-            await self.server_writer.drain()
+            writer.write(data)
+            await writer.drain()
+            print("Wrote PONG response back to the client")
             # data = await self.listen_server()
+            # decoded = self.parser.decoder(data)
             # print(f"New data : {data}")
+            # await self.handle_command(decoded)
             return
         except Exception as e:
             print("Error in write_to_client")
