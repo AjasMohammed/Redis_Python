@@ -103,7 +103,7 @@ class CommandHandler:
             writer = kwargs["writer"]
             reader = kwargs["reader"]
             client = writer.get_extra_info("peername")
-            print(f'Client {client} connected')
+            print(f"Client {client} connected")
             await self.create_replica(client, reader, writer)
 
         elif args[0].lower() == "getack":
