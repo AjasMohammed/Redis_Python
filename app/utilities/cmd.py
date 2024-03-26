@@ -125,7 +125,7 @@ class CommandHandler:
     async def _wait(self, args, **kwargs):
         numreplicas = int(args[0])
         timeout = int(args[1])
-        total_replicas = len(self.config.replication.slaves)
+        total_replicas = self.config.replication.connected_slaves()
         # if total_replicas < numreplicas:
         #     return total_replicas
         return total_replicas
