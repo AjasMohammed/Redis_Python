@@ -10,9 +10,9 @@ from app.utilities import (
 
 class CommandHandler:
     def __init__(self, store: Store, db: DatabaseParser, config: ServerConfiguration):
-        self.store = store
-        self.db = db
-        self.config = config
+        self.store: Store = store
+        self.db: DatabaseParser = db
+        self.config: ServerConfiguration = config
         self.cmds = {
             "PING": self._ping,
             "SET": self._set_data,
@@ -125,7 +125,7 @@ class CommandHandler:
     async def _wait(self, args, **kwargs):
         numreplicas = int(args[0])
         timeout = int(args[1])
-        total_replicas = self.config.replication.connected_slaves()
+        total_replicas = self.config.replication.connected_slaves
         # if total_replicas < numreplicas:
         #     return total_replicas
         return total_replicas
