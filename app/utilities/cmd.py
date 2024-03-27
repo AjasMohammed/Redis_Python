@@ -1,4 +1,4 @@
-import asyncio, traceback
+import asyncio, traceback, logging
 from app.utilities import (
     DatabaseParser,
     Store,
@@ -9,10 +9,17 @@ from app.utilities import (
 
 
 class CommandHandler:
-    def __init__(self, store: Store, db: DatabaseParser, config: ServerConfiguration):
+    def __init__(
+        self,
+        store: Store,
+        db: DatabaseParser,
+        config: ServerConfiguration,
+    ):
         self.store: Store = store
         self.db: DatabaseParser = db
         self.config: ServerConfiguration = config
+        self.replica_offset: asyncio.Condition = asyncio.Condition()
+        self.updated_replicas: int = 0
         self.cmds = {
             "PING": self._ping,
             "SET": self._set_data,
@@ -107,10 +114,25 @@ class CommandHandler:
             await self.create_replica(client, reader, writer)
 
         elif args[0].lower() == "getack":
-            offset = self.config.replication.command_offset
+            offset = self.config.replication.master_repl_offset
             print("Commande Offset : ", offset)
-            self.config.replication.command_offset += 37
+            self.config.replication.master_repl_offset += 37
             return ["REPLCONF", "ACK", str(offset)]
+        elif args[0].lower() == "ack":
+            self.updated_replicas = 0
+            for slave in self.config.replication._slaves_list:
+                print(
+                    f"Sende_Bytes to {slave.host}:{slave.port} : ",
+                    self.config.replication.master_repl_offset,
+                )
+                if int(args[1]) >= (
+                    int(self.config.replication.master_repl_offset) - 37
+                ):
+                    self.updated_replicas += 1
+                print(f"Recived_Bytes from {slave.host}:{slave.port} : ", args[1])
+            async with self.replica_offset:
+                self.replica_offset.notify_all()
+
         return "OK"
 
     async def _psync(self, args, **kwargs):
@@ -124,18 +146,32 @@ class CommandHandler:
 
     async def _wait(self, args, **kwargs):
         numreplicas = int(args[0])
-        timeout = int(args[1])
-        total_replicas = self.config.replication.connected_slaves
+        timeout = int(args[1]) / 1000
+        total_replicas = len(self.config.replication._slaves_list)
+        print("Master Repl Offset: ", self.config.replication.master_repl_offset)
+        if self.config.replication.master_repl_offset == 0:
+            return total_replicas
+        else:
+            try:
+                await asyncio.wait_for(self.wait_for_replicas(numreplicas), timeout)
+            # except asyncio.TimeoutError:
+            #     pass
+            except TimeoutError:
+                print("TimeoutError")
+                pass
+            except Exception as e:
+                print(e)
+                print(traceback.print_tb(e.__traceback__))
+                logging.error(traceback.print_tb(e.__traceback__))
+        return self.updated_replicas
 
-        return total_replicas
-
-    async def call_cmd(self, cmd: str, args, **kwargs):
-        cmd = cmd.upper()
-        print("CMD: ", cmd)
+    async def call_cmd(self, data, **kwargs):
+        keyword, *args = data
+        cmd = keyword.upper()
         try:
             if cmd in self.cmds:
                 response = await self.cmds[cmd](args, **kwargs)
-                print("CMD RESPONSE : ", response)
+                await self.start_propagation(data)
                 return response
             else:
                 print("Command not found...")
@@ -153,24 +189,57 @@ class CommandHandler:
             buffer_queue=asyncio.Queue(),
         )
         self.config.replication.add_slave(replica)
-        self.config.slave_tasks.append(
-            asyncio.create_task(self.propagate_to_slave(replica))
-        )
+        # self.config.slave_tasks.append(
+        #     asyncio.create_task(self.propagate_to_slave(replica))
+        # )
 
-    async def propagate_to_slave(self, replica: Replica) -> None:
-        print(
-            f"Start background task to send write commands to {replica.host}:{replica.port}"
-        )
-        while True:
-            data = await replica.buffer_queue.get()
-            print(f" DATA : {data}")
-            try:
-                replica.writer.write(data)
-                await replica.writer.drain()
-                print("Wrote Data to Slave", (replica.host, replica.port))
-            except Exception as e:
-                print(e)
-                print(traceback.print_tb(e.__traceback__))
+    async def start_propagation(self, command):
+        data = RedisProtocolParser().encoder(command)
+        if self.is_writable(command):
+            self.calculate_bytes(data)
+            if self.config.replication.role == "master":
+                # self.config.replication.master_repl_offset += len(data)
+                for slave in self.config.replication._slaves_list:
+                    print("Start Propagation")
+                    await self.propagate_to_slave(slave, data)
+
+    async def propagate_to_slave(self, replica: Replica, data) -> None:
+        # data = await replica.buffer_queue.get()
+        print(f" DATA : {data}")
+        try:
+            replica.writer.write(data)
+            replica.send_bytes += len(data)
+            await replica.writer.drain()
+        except Exception as e:
+            print(e)
+            print(traceback.print_tb(e.__traceback__))
+
+    async def request_replica_offset(self):
+        cmd = ["REPLCONF", "GETACK", "*"]
+        data = RedisProtocolParser().encoder(cmd)
+        for slave in self.config.replication._slaves_list:
+            # print("Sende_Bytes : ", slave.send_bytes)
+            slave.writer.write(data)
+            await slave.writer.drain()
+        self.config.replication.master_repl_offset += len(data)
+
+    async def wait_for_replicas(self, numreplicas: int) -> None:
+        # while True:
+        if self.updated_replicas >= numreplicas:
+            print("All slaves connected")
+            return
+        await self.request_replica_offset()
+        async with self.replica_offset:
+            await self.replica_offset.wait()
+        if self.updated_replicas >= numreplicas:
+            print("All slaves connected")
+            return
+        await asyncio.sleep(0.1)
+
+    def calculate_bytes(self, data: bytes) -> int:
+        print(f"Current offset : {self.config.replication.master_repl_offset}")
+        self.config.replication.master_repl_offset += len(data)
+        print(f"New offset : {self.config.replication.master_repl_offset}")
 
     @staticmethod
     def check_index(keyword, array):
@@ -179,11 +248,30 @@ class CommandHandler:
                 return i
         return None
 
-
-# Usage example
-if __name__ == "__main__":
-    handler = CommandHandler()
-    print(handler.call_cmd("_PING"))  # Output: PONG
-    print(handler.call_cmd("SET", key="foo", value="bar", args=[]))  # Output: OK
-    print(handler.call_cmd("GET", key="foo"))  # Output: bar
-    print(handler.call_cmd("ECHO", data=["Hello", "World"]))  # Output: Hello World
+    @staticmethod
+    def is_writable(cmd):
+        writable_cmd = [
+            "SET",
+            "GETSET",
+            "DEL",
+            "INCR",
+            "DECR",
+            "INCRBY",
+            "DECRBY",
+            "APPEND",
+            "SETBIT",
+            "SETEX",
+            "MSET",
+            "MSETNX",
+            "HSET",
+            "HSETNX",
+            "HMSET",
+        ]
+        try:
+            res = cmd[0].upper() in writable_cmd
+            return res
+        except AttributeError:
+            res = []
+            for i in cmd:
+                res.append(i[0].upper() in writable_cmd)
+            return all(res)

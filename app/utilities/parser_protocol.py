@@ -18,7 +18,6 @@ class RedisProtocolParser:
         self.encoded = None
 
     def encoder(self, data: list | str | dict) -> bytes | None:
-        print("ENCODING : ", data)
         try:
             self.encoded = None
             if isinstance(data, str):
@@ -50,7 +49,6 @@ class RedisProtocolParser:
 
     def decoder(self, data: bytes):
         self.decoded = None
-        print("DECODING : ", data)
         try:
             data = data.decode()
         except UnicodeDecodeError:

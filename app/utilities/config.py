@@ -9,7 +9,7 @@ class Replica:
     reader: asyncio.StreamReader = None
     writer: asyncio.StreamWriter = None
     buffer_queue: asyncio.Queue = field(default_factory=asyncio.Queue)
-    is_ready: bool = True
+    send_bytes: int = 0
 
 
 @dataclass(kw_only=True)
@@ -18,7 +18,6 @@ class ReplicationConfig:
     role: str = "master"
     master_replid: str = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
     master_repl_offset: int = 0
-    command_offset: int = 0
     _slaves_list: list[Replica] = field(default_factory=list)
     _connected_slaves: int = 0
 
