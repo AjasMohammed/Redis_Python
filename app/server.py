@@ -237,7 +237,7 @@ class Server:
             ack_cmd = self.parser.decoder(resp_data[index:])
             print("ACK CMD: ", ack_cmd)
             if ack_cmd:
-                result = await self.handle_command(ack_cmd)
+                result = await self.handle_command(ack_cmd, self.reader, self.writer)
                 print("ACK RESULT : ", result)
                 self.writer.write(result)
                 await self.writer.drain()
