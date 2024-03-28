@@ -154,7 +154,9 @@ class CommandHandler:
         else:
             try:
                 print(f"Timeout : {timeout}")
-                await asyncio.wait_for(self.wait_for_replicas(numreplicas, timeout), timeout)
+                await asyncio.wait_for(
+                    self.wait_for_replicas(numreplicas, timeout), timeout
+                )
                 # await self.wait_for_replicas(numreplicas)
             # except asyncio.TimeoutError:
             #     pass
