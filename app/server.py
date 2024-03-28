@@ -235,14 +235,15 @@ class Server:
             print("RESPONSE: ", master_info)
             index = resp_data.find(b"*")
             ack_cmd = self.parser.decoder(resp_data[index:])
+            print("ACK CMD: ", ack_cmd)
             if ack_cmd:
                 result = await self.handle_command(ack_cmd)
                 print("ACK RESULT : ", result)
                 self.writer.write(result)
                 await self.writer.drain()
         except Exception as e:
+            print(f"Handshake failed: {traceback.print_tb(e.__traceback__)}")
             logging.error(f"Handshake failed: {traceback.print_tb(e.__traceback__)}")
-
         finally:
             logging.info("Handshake Completed...")
 
