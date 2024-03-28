@@ -153,7 +153,9 @@ class CommandHandler:
             return total_replicas
         else:
             try:
-                await asyncio.wait_for(self.wait_for_replicas(numreplicas), timeout)
+                print(f"Timeout : {timeout}")
+                await asyncio.wait_for(self.wait_for_replicas(numreplicas, timeout), timeout)
+                # await self.wait_for_replicas(numreplicas)
             # except asyncio.TimeoutError:
             #     pass
             except TimeoutError:
@@ -223,7 +225,7 @@ class CommandHandler:
             await slave.writer.drain()
         self.config.replication.master_repl_offset += len(data)
 
-    async def wait_for_replicas(self, numreplicas: int) -> None:
+    async def wait_for_replicas(self, numreplicas: int, timeout: float) -> None:
         # while True:
         if self.updated_replicas >= numreplicas:
             print("All slaves connected")
@@ -234,7 +236,7 @@ class CommandHandler:
         if self.updated_replicas >= numreplicas:
             print("All slaves connected")
             return
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(timeout)
 
     def calculate_bytes(self, data: bytes) -> int:
         print(f"Current offset : {self.config.replication.master_repl_offset}")
