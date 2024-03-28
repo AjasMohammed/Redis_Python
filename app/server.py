@@ -242,6 +242,7 @@ class Server:
                 self.writer.write(result)
                 await self.writer.drain()
         except Exception as e:
+            print(f"Handshake failed Error: {e}")
             print(f"Handshake failed: {traceback.print_tb(e.__traceback__)}")
             logging.error(f"Handshake failed: {traceback.print_tb(e.__traceback__)}")
         finally:
