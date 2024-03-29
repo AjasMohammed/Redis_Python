@@ -150,6 +150,7 @@ class Server:
             if b"None" in data:
                 print("Not Responding...")
                 # return
+                data = b"+OK\r\n"
                 await asyncio.sleep(1)
             writer.write(data)
             await writer.drain()
