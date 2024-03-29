@@ -142,7 +142,6 @@ class CommandHandler:
             async with self.replica_offset:
                 self.replica_offset.notify_all()
             return "None"
-
         return "OK"
 
     async def _psync(self, args, **kwargs):
