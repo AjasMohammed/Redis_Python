@@ -156,7 +156,6 @@ class CommandHandler:
         numreplicas = int(args[0])
         timeout = int(args[1]) / 1000
         total_replicas = len(self.config.replication._slaves_list)
-        print("Master Repl Offset: ", self.config.replication.master_repl_offset)
         if self.config.replication.master_repl_offset == 0:
             return total_replicas
         else:
@@ -165,6 +164,9 @@ class CommandHandler:
                 await asyncio.wait_for(
                     self.wait_for_replicas(numreplicas, timeout), timeout
                 )
+                if self.updated_replicas >= numreplicas:
+                    print("All slaves connected")
+                    return numreplicas
                 # await self.wait_for_replicas(numreplicas)
             # except asyncio.TimeoutError:
             #     pass
