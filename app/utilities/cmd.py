@@ -38,6 +38,14 @@ class CommandHandler:
         }
 
     async def _ping(self, args, **kwargs):
+        if self.config.replication.role == "slave":
+            writer = kwargs["writer"]
+            client = writer.get_extra_info("peername")
+            if client[0] == self.config.replication.master_host and client[1] == int(
+                self.config.replication.master_port
+            ):
+                self.config.replication.master_repl_offset += 14
+                return "PONG"
         return "PONG"
 
     async def _echo(self, args, **kwargs):
@@ -203,7 +211,6 @@ class CommandHandler:
             self.calculate_bytes(data)
             if self.config.replication.role == "master":
                 # self.config.replication.master_repl_offset += len(data)
-                print(f"PROPAGATING: {command}")
                 for slave in self.config.replication._slaves_list:
                     print("Start Propagation")
                     await self.propagate_to_slave(slave, data)
