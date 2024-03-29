@@ -76,6 +76,9 @@ class Server:
                 logging.debug(f"bytes data is {decoded_data}")
                 if decoded_data:
                     response = await self.handle_command(decoded_data, reader, writer)
+                    print(f"Response: {response}")
+                    client = writer.get_extra_info("peername")
+                    client = (client[0], str(client[1]))
                     if isinstance(response, tuple):
                         for item in response:
                             await self.write_to_client(item, writer)
@@ -141,10 +144,12 @@ class Server:
                 )
                 client = writer.get_extra_info("peername")
                 if client[0] == master[0] and client[1] == master[1]:
-                    await self.should_respond(data)
+                    await self.should_respond(data, writer)
                     print(f"Offset : {self.config.replication.master_repl_offset}")
                     return
-
+            if b"None" in data:
+                print("Not Responding...")
+                return
             writer.write(data)
             await writer.drain()
             # r = await self.read_data()
@@ -231,21 +236,21 @@ class Server:
         finally:
             logging.info("Handshake Completed...")
 
-    async def should_respond(self, data):
+    async def should_respond(self, data, writer: asyncio.StreamWriter) -> None:
         try:
             if isinstance(data, tuple):
                 for cmd in data:
                     if isinstance(cmd, str):
                         cmd = self.parser.encoder(cmd)
                     if b"ACK" in cmd:
-                        self.server_writer.write(cmd)
-                        await self.server_writer.drain()
+                        self.writer.write(cmd)
+                        await self.writer.drain()
             else:
                 if isinstance(data, str):
                     data = self.parser.encoder(data)
                 if b"ACK" in data:
-                    self.server_writer.write(data)
-                    await self.server_writer.drain()
+                    self.writer.write(data)
+                    await self.writer.drain()
         except Exception as e:
             print("Error in should_respond")
             print(e)

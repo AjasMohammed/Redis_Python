@@ -124,7 +124,8 @@ class CommandHandler:
         elif args[0].lower() == "getack":
             offset = self.config.replication.master_repl_offset
             print("Command Offset : ", offset)
-            self.config.replication.master_repl_offset += 37
+            if self.config.replication.role == "slave":
+                self.config.replication.master_repl_offset += 37
             return ["REPLCONF", "ACK", str(offset)]
         elif args[0].lower() == "ack":
             self.updated_replicas = 0
@@ -140,6 +141,7 @@ class CommandHandler:
                 print(f"Recived_Bytes from {slave.host}:{slave.port} : ", args[1])
             async with self.replica_offset:
                 self.replica_offset.notify_all()
+            return "None"
 
         return "OK"
 
@@ -198,9 +200,6 @@ class CommandHandler:
             buffer_queue=asyncio.Queue(),
         )
         self.config.replication.add_slave(replica)
-        # self.config.slave_tasks.append(
-        #     asyncio.create_task(self.propagate_to_slave(replica))
-        # )
 
     async def start_propagation(self, command):
         data = RedisProtocolParser().encoder(command)
