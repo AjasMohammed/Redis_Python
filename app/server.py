@@ -149,7 +149,8 @@ class Server:
                     return
             if b"None" in data:
                 print("Not Responding...")
-                return
+                # return
+                await asyncio.sleep(1)
             writer.write(data)
             await writer.drain()
             # r = await self.read_data()
