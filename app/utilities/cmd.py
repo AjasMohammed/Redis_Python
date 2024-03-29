@@ -160,16 +160,11 @@ class CommandHandler:
             return total_replicas
         else:
             try:
-                print(f"Timeout : {timeout}")
                 await asyncio.wait_for(
                     self.wait_for_replicas(numreplicas, timeout), timeout
                 )
                 if self.updated_replicas >= numreplicas:
-                    print("All slaves connected")
                     return numreplicas
-                # await self.wait_for_replicas(numreplicas)
-            # except asyncio.TimeoutError:
-            #     pass
             except TimeoutError:
                 print("TimeoutError")
                 pass

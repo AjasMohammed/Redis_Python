@@ -74,12 +74,8 @@ class Server:
 
                 decoded_data = self.parser.decoder(data)
                 logging.debug(f"bytes data is {decoded_data}")
-                # print(f"bytes data is {decoded_data}")
-
                 if decoded_data:
                     response = await self.handle_command(decoded_data, reader, writer)
-                    # print("RESULT: ", response)
-
                     if isinstance(response, tuple):
                         for item in response:
                             await self.write_to_client(item, writer)
@@ -111,14 +107,7 @@ class Server:
                             writer=writer,
                         )
                         byte_data = self.parser.encoder(response)
-                        # if (
-                        #     self.config.replication.role == "slave"
-                        #     and response
-                        #     and "ACK" not in response
-                        # ):
-                        # self.calculate_bytes(self.parser.encoder(cmd))
                         res.append(byte_data)
-                        # await self.write_to_client(byte_data)
                     print("RES: ", res)
                     return tuple(res)
                 else:
@@ -130,12 +119,6 @@ class Server:
                         reader=self.server_reader,
                         writer=self.server_writer,
                     )
-                    # if (
-                    #     self.config.replication.role == "slave"
-                    #     and response
-                    #     and "ACK" not in response
-                    # ):
-                    #     self.calculate_bytes(self.parser.encoder(data))
                     if isinstance(response, tuple) or isinstance(response, bytes):
                         return response
                     encoded_data = self.parser.encoder(response)
