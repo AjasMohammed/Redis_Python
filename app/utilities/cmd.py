@@ -115,7 +115,7 @@ class CommandHandler:
 
         elif args[0].lower() == "getack":
             offset = self.config.replication.master_repl_offset
-            print("Commande Offset : ", offset)
+            print("Command Offset : ", offset)
             self.config.replication.master_repl_offset += 37
             return ["REPLCONF", "ACK", str(offset)]
         elif args[0].lower() == "ack":
@@ -203,6 +203,7 @@ class CommandHandler:
             self.calculate_bytes(data)
             if self.config.replication.role == "master":
                 # self.config.replication.master_repl_offset += len(data)
+                print(f"PROPAGATING: {command}")
                 for slave in self.config.replication._slaves_list:
                     print("Start Propagation")
                     await self.propagate_to_slave(slave, data)
